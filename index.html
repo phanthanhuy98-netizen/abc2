@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hệ Thống DMS/SFA Enterprise Toàn Diện — Quản Lý Thị Trường</title>
+<title>Hệ Thống DMS/SFA Enterprise Production Ready</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#12213D">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,13 +40,13 @@
   .login-box{max-width:380px;margin:50px auto;background:#fff;padding:24px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.4);}
   .hidden{display:none !important;}
   .stat-number{font-size:24px;font-weight:700;color:var(--navy);margin-top:4px;}
-  .img-preview{width:80px;height:60px;object-fit:cover;border-radius:4px;}
+  .img-preview{width:70px;height:50px;object-fit:cover;border-radius:4px;}
   .cart-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);}
 </style>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, enableIndexedDbPersistence } 
+  import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, runTransaction, serverTimestamp, enableIndexedDbPersistence } 
     from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -55,29 +55,27 @@
     projectId: "uy-phan",
     storageBucket: "uy-phan.firebasestorage.app",
     messagingSenderId: "387969382999",
-    appId: "1:387969382999:web:772ccbb251eb4871b28112",
-    measurementId: "G-K6G6Z2XEXD"
+    appId: "1:387969382999:web:772ccbb251eb4871b28112"
   };
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // KÍCH HOẠT CHẾ ĐỘ OFFLINE CACHE
-  enableIndexedDbPersistence(db).catch(err => console.log("Offline persistence error:", err.code));
+  enableIndexedDbPersistence(db).catch(() => {});
 
   let currentUser = null;
   let currentTab = 'sales'; 
   let stores = [], orders = [], users = [], checkins = [], products = [];
-  let currentCart = []; // Giỏ hàng đang chọn
+  let currentCart = [];
 
-  // LẮNG NGHE DATA REALTIME
+  // LẮNG NGHE DATA DỮ LIỆU REALTIME
   onSnapshot(collection(db, "stores"), snap => { stores = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "orders"), snap => { orders = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "users"), snap => { users = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "checkins"), snap => { checkins = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "products"), snap => { products = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
 
-  // 1. ĐĂNG NHẬP & PHÂN QUYỀN
+  // 1. ĐĂNG NHẬP DỰA TRÊN DATABASE
   window.handleLogin = function(e) {
     e.preventDefault();
     const u = document.getElementById('logUser').value.trim();
@@ -107,30 +105,15 @@
     document.getElementById('appView').classList.add('hidden');
   };
 
-  // 2. CHỨC NĂNG SẢN PHẨM (CATALOG/SKU)
-  window.addProduct = async function(e) {
-    e.preventDefault();
-    if(currentUser.role !== 'admin') return;
-    const name = document.getElementById('prdName').value;
-    const price = Number(document.getElementById('prdPrice').value);
-    const stock = Number(document.getElementById('prdStock').value);
-    const code = document.getElementById('prdCode').value;
-
-    await addDoc(collection(db, "products"), { name, price, stock, code, createdAt: serverTimestamp() });
-    alert("Thêm sản phẩm thành công!");
-    document.getElementById('prdForm').reset();
-  };
-
-  window.deleteProduct = async function(id) {
-    if(currentUser.role === 'admin' && confirm("Xóa sản phẩm này khỏi danh mục?")) await deleteDoc(doc(db, "products", id));
-  };
-
-  // 3. CHỨC NĂNG BẮT ĐƠN HÀNG TỰ ĐỘNG THEO SẢN PHẨM & CHIẾT KHẤU
+  // 2. GIỎ HÀNG & TỰ ĐỘNG TRỪ TỒN KHO KHI TẠO ĐƠN
   window.addToCart = function(productId) {
     const prd = products.find(p => p.id === productId);
     if (!prd) return;
+    if (prd.stock <= 0) return alert("Sản phẩm này đã HẾT HÀNG trong kho!");
+
     const item = currentCart.find(c => c.id === productId);
     if (item) {
+      if (item.qty >= prd.stock) return alert("Không đủ số lượng trong kho!");
       item.qty += 1;
     } else {
       currentCart.push({ id: prd.id, name: prd.name, price: prd.price, qty: 1 });
@@ -164,48 +147,88 @@
     document.getElementById('cartTotal').innerText = `${finalTotal.toLocaleString('vi-VN')} đ`;
   }
 
+  // TẠO ĐƠN + TỰ ĐỘNG TRỪ TỒN KHO TRANSACTION
   window.submitOrder = async function(e) {
     e.preventDefault();
-    if (currentCart.length === 0) return alert("Vui lòng chọn ít nhất 1 sản phẩm vào giỏ hàng!");
+    if (currentCart.length === 0) return alert("Vui lòng chọn sản phẩm vào giỏ!");
     
     const storeName = document.getElementById('ordStore').value;
     const discount = Number(document.getElementById('ordDiscount').value || 0);
     const note = document.getElementById('ordNote').value;
-    
     let subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     let finalAmount = subtotal * (1 - discount / 100);
 
-    await addDoc(collection(db, "orders"), {
-      salesName: currentUser.name,
-      salesUser: currentUser.username,
-      storeName,
-      items: currentCart,
-      discount,
-      amount: finalAmount,
-      paymentStatus: 'Chưa thanh toán (Công nợ)',
-      status: 'Chờ duyệt',
-      note,
-      createdAt: serverTimestamp()
-    });
+    try {
+      // Transaction trừ tồn kho an toàn
+      await runTransaction(db, async (transaction) => {
+        // Kiểm tra tồn kho trước
+        for (let item of currentCart) {
+          const prdRef = doc(db, "products", item.id);
+          const prdDoc = await transaction.get(prdRef);
+          if (!prdDoc.exists() || prdDoc.data().stock < item.qty) {
+            throw `Sản phẩm ${item.name} không đủ số lượng tồn kho!`;
+          }
+        }
 
-    alert("Gửi đơn hàng thành công!");
-    currentCart = [];
-    document.getElementById('ordForm').reset();
-    renderCartUI();
+        // Trừ tồn kho
+        for (let item of currentCart) {
+          const prdRef = doc(db, "products", item.id);
+          const prdDoc = await transaction.get(prdRef);
+          transaction.update(prdRef, { stock: prdDoc.data().stock - item.qty });
+        }
+
+        // Lưu đơn hàng
+        const newOrderRef = doc(collection(db, "orders"));
+        transaction.set(newOrderRef, {
+          salesName: currentUser.name,
+          salesUser: currentUser.username,
+          storeName,
+          items: currentCart,
+          discount,
+          amount: finalAmount,
+          paymentStatus: 'Chưa thanh toán (Công nợ)',
+          status: 'Chờ duyệt',
+          note,
+          createdAt: serverTimestamp()
+        });
+      });
+
+      alert("Lên đơn hàng thành công! Tồn kho đã tự động cập nhật trừ lùi.");
+      currentCart = [];
+      document.getElementById('ordForm').reset();
+      renderCartUI();
+    } catch (err) {
+      alert("Lỗi tạo đơn: " + err);
+    }
   };
 
-  // 4. CHECK-IN GPS & BẢO MẬT ẢNH
+  // 3. XỬ LÝ NÉN ẢNH CHECK-IN AN TOÀN DUNG LƯỢNG (COMPRESSION)
   window.doCheckinWithPhoto = function(storeName) {
     const fileInput = document.getElementById(`img_${storeName}`);
-    let photoData = "";
-    
     if (fileInput && fileInput.files[0]) {
+      const file = fileInput.files[0];
+      const img = document.createElement("img");
       const reader = new FileReader();
+
       reader.onload = function(e) {
-        photoData = e.target.result;
-        saveCheckin(storeName, photoData);
+        img.src = e.target.result;
+        img.onload = function() {
+          // Nén ảnh xuống kích thước tối đa 600px để tiết kiệm bộ nhớ
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 600;
+          const scale = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scale;
+
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          // Chuyển thành JPEG chất lượng 0.6
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.6);
+          saveCheckin(storeName, compressedDataUrl);
+        };
       };
-      reader.readAsDataURL(fileInput.files[0]);
+      reader.readAsDataURL(file);
     } else {
       saveCheckin(storeName, "");
     }
@@ -228,7 +251,24 @@
     });
   }
 
-  // 5. CHỨC NĂNG QUẢN LÝ (ADMIN) & XUẤT EXCEL
+  // 4. CÁC QUẢN LÝ KHÁC & EXPORT CSV
+  window.addProduct = async function(e) {
+    e.preventDefault();
+    if(currentUser.role !== 'admin') return;
+    const name = document.getElementById('prdName').value;
+    const price = Number(document.getElementById('prdPrice').value);
+    const stock = Number(document.getElementById('prdStock').value);
+    const code = document.getElementById('prdCode').value;
+
+    await addDoc(collection(db, "products"), { name, price, stock, code, createdAt: serverTimestamp() });
+    alert("Đã thêm sản phẩm mới vào Kho!");
+    document.getElementById('prdForm').reset();
+  };
+
+  window.deleteProduct = async function(id) {
+    if(currentUser.role === 'admin' && confirm("Xóa sản phẩm này?")) await deleteDoc(doc(db, "products", id));
+  };
+
   window.addUser = async function(e) {
     e.preventDefault();
     if(currentUser.role !== 'admin') return;
@@ -238,12 +278,12 @@
     const role = document.getElementById('usrRole').value;
 
     await addDoc(collection(db, "users"), { name, username, password, role, createdAt: serverTimestamp() });
-    alert("Đã thêm tài khoản nhân viên!");
+    alert("Đã thêm nhân viên!");
     document.getElementById('usrForm').reset();
   };
 
   window.deleteUser = async function(id) {
-    if(currentUser.role === 'admin' && confirm("Xóa tài khoản nhân viên này?")) await deleteDoc(doc(db, "users", id));
+    if(currentUser.role === 'admin' && confirm("Xóa nhân viên?")) await deleteDoc(doc(db, "users", id));
   };
 
   window.addStore = async function(e) {
@@ -255,12 +295,12 @@
     const routeDay = document.getElementById('stRoute').value;
 
     await addDoc(collection(db, "stores"), { name, address, phone, routeDay, createdAt: serverTimestamp() });
-    alert("Đã thêm điểm bán mới vào Tuyến Đường!");
+    alert("Đã thêm điểm bán vào tuyến đường!");
     document.getElementById('stForm').reset();
   };
 
   window.deleteStore = async function(id) {
-    if(currentUser.role === 'admin' && confirm("Xóa điểm bán này?")) await deleteDoc(doc(db, "stores", id));
+    if(currentUser.role === 'admin' && confirm("Xóa điểm bán?")) await deleteDoc(doc(db, "stores", id));
   };
 
   window.updateOrderStatus = async function(id, status) {
@@ -272,10 +312,9 @@
   };
 
   window.deleteOrder = async function(id) {
-    if(currentUser.role === 'admin' && confirm("Xóa đơn hàng này?")) await deleteDoc(doc(db, "orders", id));
+    if(currentUser.role === 'admin' && confirm("Xóa đơn hàng?")) await deleteDoc(doc(db, "orders", id));
   };
 
-  // XUẤT BÁO CÁO EXCEL / CSV
   window.exportToCSV = function() {
     let csv = "Sales,Khach Hang,Gia Tri (VND),Chiet Khau (%),Trang Thai,Thanh Toan,Ghi Chu\n";
     orders.forEach(o => {
@@ -284,13 +323,13 @@
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Bao_Cao_Doanh_So_DMS_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `Bao_Cao_Enterprise_DMS_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
   };
 
   window.switchTab = function(tab) { currentTab = tab; renderUI(); };
 
-  // 6. RENDER GIAO DIỆN PHÂN QUYỀN CHI TIẾT
+  // 5. GIAO DIỆN HIỂN THỊ
   function renderUI() {
     if (!currentUser) return;
     document.getElementById('userInfo').innerText = `${currentUser.name} (${currentUser.role === 'admin' ? 'Quản Lý Admin' : 'Sales Thị Trường'})`;
@@ -307,13 +346,12 @@
 
     const main = document.getElementById('mainContent');
     
-    // DASHBOARD QUẢN LÝ REALTIME
     if (currentTab === 'dashboard') {
       const totalRev = orders.reduce((sum, o) => sum + (o.amount || 0), 0);
       const pendingOrders = orders.filter(o => o.status === 'Chờ duyệt').length;
       main.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <h2>Báo Cáo Tổng Quan Realtime Enterprise</h2>
+          <h2>Báo Cáo Tổng Quan Enterprise Realtime</h2>
           <button class="btn btn-green" onclick="exportToCSV()">📥 Xuất File Báo Cáo Excel/CSV</button>
         </div>
 
@@ -326,7 +364,7 @@
 
         <div class="grid" style="margin-top:16px;">
           <div class="card" style="grid-column: span 3;">
-            <h3>📍 Nhật Ký Check-in GPS & Hình Ảnh Đi Thị Trường</h3>
+            <h3>📍 Nhật Ký Check-in GPS & Hình Ảnh Nén Đi Thị Trường</h3>
             <table>
               <thead><tr><th>Sales</th><th>Điểm Bán</th><th>Tọa Độ GPS</th><th>Ảnh Quầy Hàng</th></tr></thead>
               <tbody>
@@ -345,7 +383,6 @@
         </div>
       `;
     }
-    // THỊ TRƯỜNG, TUYẾN ĐƯỜNG & BẮT ĐƠN HÀNG (SALES & ADMIN)
     else if (currentTab === 'sales') {
       const myOrders = currentUser.role === 'admin' ? orders : orders.filter(o => o.salesUser === currentUser.username);
       const myRev = myOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
@@ -362,21 +399,21 @@
                 <b>${s.name}</b> <span class="badge badge-pending">${s.routeDay || 'Cả tuần'}</span><br>
                 <small style="color:var(--muted);">${s.address} - 📞${s.phone||'N/A'}</small>
                 <input type="file" id="img_${s.name}" accept="image/*" capture="environment" style="margin-top:6px;">
-                <button class="btn btn-amber btn-sm" style="width:100%;margin-top:4px;" onclick="doCheckinWithPhoto('${s.name}')">📍 Check-in + Gửi Ảnh Quầy</button>
+                <button class="btn btn-amber btn-sm" style="width:100%;margin-top:4px;" onclick="doCheckinWithPhoto('${s.name}')">📍 Check-in + Gửi Ảnh Nén</button>
               </div>
             `).join('')}
           </div>
 
           <div class="card" style="grid-column: span 2;">
-            <h3>📦 Catalog Sản Phẩm & Giỏ Hàng Bắt Đơn</h3>
+            <h3>📦 Catalog Sản Phẩm & Giỏ Hàng (Trừ Tồn Kho Auto)</h3>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div>
-                <h4>Danh Mục Sản Phẩm SKU</h4>
+                <h4>Danh Mục SKU</h4>
                 <div style="max-height:280px;overflow-y:auto;margin-top:8px;">
                   ${products.map(p => `
                     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-bottom:1px solid #eee;">
-                      <div><b>${p.name}</b><br><small style="color:var(--green);">${p.price.toLocaleString()}đ</small> | <small>Tồn: ${p.stock}</small></div>
-                      <button class="btn btn-green btn-sm" onclick="addToCart('${p.id}')">+ Chọn</button>
+                      <div><b>${p.name}</b><br><small style="color:var(--green);">${p.price.toLocaleString()}đ</small> | <small style="color:${p.stock>0?'green':'red'};">Tồn: ${p.stock}</small></div>
+                      <button class="btn btn-green btn-sm" onclick="addToCart('${p.id}')" ${p.stock<=0?'disabled style="opacity:0.5;"':''}>+ Chọn</button>
                     </div>
                   `).join('')}
                 </div>
@@ -413,7 +450,6 @@
         </div>
       `;
     } 
-    // QUẢN LÝ ĐƠN HÀNG & CÔNG NỢ
     else if (currentTab === 'orders') {
       const displayOrders = currentUser.role === 'admin' ? orders : orders.filter(o => o.salesUser === currentUser.username);
       main.innerHTML = `
@@ -436,7 +472,7 @@
                   ${currentUser.role === 'admin' ? `
                     <td>
                       <button class="btn btn-green btn-sm" onclick="updateOrderStatus('${o.id}', 'Đã duyệt')">Duyệt</button>
-                      <button class="btn btn-amber btn-sm" onclick="updatePaymentStatus('${o.id}', 'Đã thanh toán')">Đã Thu Tiền</button>
+                      <button class="btn btn-amber btn-sm" onclick="updatePaymentStatus('${o.id}', 'Đã thanh toán')">Thanh Toán</button>
                       <button class="btn btn-red btn-sm" onclick="deleteOrder('${o.id}')">Xóa</button>
                     </td>
                   ` : ''}
@@ -447,7 +483,6 @@
         </div>
       `;
     }
-    // DANH MỤC SẢN PHẨM SKU (ADMIN ONLY)
     else if (currentTab === 'products' && currentUser.role === 'admin') {
       main.innerHTML = `
         <h2>Quản Lý Catalog Sản Phẩm (SKU)</h2>
@@ -457,14 +492,14 @@
             <form id="prdForm" onsubmit="addProduct(event)">
               <input type="text" id="prdCode" placeholder="Mã SKU (VD: SP01)" required>
               <input type="text" id="prdName" placeholder="Tên sản phẩm" required>
-              <input type="number" id="prdPrice" placeholder="Đơn giá niêm yết (VNĐ)" required>
+              <input type="number" id="prdPrice" placeholder="Đơn giá (VNĐ)" required>
               <input type="number" id="prdStock" placeholder="Số lượng tồn kho" required>
               <button class="btn btn-green" style="width:100%;">+ Lưu Sản Phẩm</button>
             </form>
           </div>
 
           <div class="card" style="grid-column: span 2;">
-            <h3>Danh Danh Mục Sản Phẩm</h3>
+            <h3>Danh Mục Sản Phẩm Trong Kho</h3>
             <table>
               <thead><tr><th>Mã SKU</th><th>Tên Sản Phẩm</th><th>Đơn Giá</th><th>Tồn Kho</th><th>Thao Tác</th></tr></thead>
               <tbody>
@@ -483,7 +518,6 @@
         </div>
       `;
     }
-    // QUẢN LÝ KHÁCH HÀNG CRM & PHÂN TUYẾN
     else if (currentTab === 'stores') {
       main.innerHTML = `
         <h2>Quản Lý Khách Hàng Điểm Bán & Tuyến Đường (CRM)</h2>
@@ -525,7 +559,6 @@
         </div>
       `;
     }
-    // QUẢN LÝ NHÂN VIÊN HR
     else if (currentTab === 'users' && currentUser.role === 'admin') {
       main.innerHTML = `
         <h2>Quản Lý Nhân Sự (HR)</h2>
@@ -570,9 +603,8 @@
 <body>
 
 <div class="app">
-  <!-- MÀN HÌNH ĐĂNG NHẬP -->
   <div id="loginView" class="login-box">
-    <h2 style="text-align:center;margin-bottom:16px;">ĐĂNG NHẬP DẠNG ROLE</h2>
+    <h2 style="text-align:center;margin-bottom:16px;">ĐĂNG NHẬP DMS ENTERPRISE</h2>
     <form onsubmit="handleLogin(event)">
       <label>Tài khoản:</label>
       <input type="text" id="logUser" placeholder="Tài khoản (Admin: admin)" required>
@@ -582,7 +614,6 @@
     </form>
   </div>
 
-  <!-- MÀN HÌNH ỨNG DỤNG BÊN TRONG -->
   <div id="appView" class="hidden">
     <div class="topbar">
       <div>
@@ -601,7 +632,7 @@
     </div>
 
     <div class="panel">
-      <div id="mainContent">Đang kết nối dữ liệu Cloud...</div>
+      <div id="mainContent">Đang tải dữ liệu Enterprise Cloud...</div>
     </div>
   </div>
 </div>
