@@ -1,1 +1,20 @@
-
+{
+  "name": "Tuyến Thị Trường Sales",
+  "short_name": "SalesApp",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#12213D",
+  "theme_color": "#12213D",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/854/854878.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/854/854878.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
