@@ -1,37 +1,49 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#12213D">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tuyến Thị Trường — Cloud Firebase Realtime</title>
+<title>Tuyến Thị Trường — Quản Lý Sales Realtime</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12213D">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-  :root { --navy:#12213D; --amber:#FCA311; --paper:#F6F1E6; --line:#D9D0BC; --muted:#6B6558; --green:#2D6A4F; }
+  :root { --navy:#12213D; --amber:#FCA311; --paper:#F6F1E6; --line:#D9D0BC; --muted:#6B6558; --green:#2D6A4F; --red:#C1121F; }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Inter',sans-serif;background:var(--navy);color:#1a1a1a;padding:20px;}
-  .app{max-width:1000px;margin:0 auto;}
-  .panel{background:var(--paper);border-radius:16px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,0.3);}
-  h1,h2,h3{font-family:'Oswald',sans-serif;color:var(--navy);}
-  .topbar{display:flex;justify-content:space-between;align-items:center;color:#fff;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
-  .btn{background:var(--navy);color:#fff;border:none;padding:10px 18px;border-radius:20px;font-weight:600;cursor:pointer;}
+  body{font-family:'Inter',sans-serif;background:var(--navy);color:#1a1a1a;padding:16px;}
+  .app{max-width:1100px;margin:0 auto;}
+  .panel{background:var(--paper);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,0.3);margin-top:16px;}
+  h1,h2,h3,h4{font-family:'Oswald',sans-serif;color:var(--navy);}
+  
+  .topbar{display:flex;justify-content:space-between;align-items:center;color:#fff;flex-wrap:wrap;gap:12px;}
+  .nav-btns{display:flex;gap:8px;}
+  .btn{background:var(--navy);color:#fff;border:none;padding:10px 16px;border-radius:20px;font-weight:600;cursor:pointer;transition:0.2s;}
   .btn-amber{background:var(--amber);color:var(--navy);}
-  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px;}
+  .btn-green{background:var(--green);color:#fff;}
+  .btn-sm{padding:6px 12px;font-size:13px;}
+  
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;}
   .badge{display:inline-block;padding:3px 8px;background:#EFE7D6;border-radius:4px;font-size:12px;font-weight:700;}
+  
+  .stat-num{font-size:28px;font-weight:700;color:var(--navy);margin-top:4px;}
   .status-online{color:var(--green);font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;}
   .status-dot{width:8px;height:8px;background:var(--green);border-radius:50%;display:inline-block;}
+
+  input, select, textarea { width:100%; padding:10px; margin:6px 0 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; }
+  th, td { text-align:left; padding:10px; border-bottom:1px solid var(--line); font-size:14px; }
+  th { background:#EFE7D6; color:var(--navy); }
 </style>
 
-<!-- Tải Firebase SDK Modular -->
+<!-- Firebase SDK Modular -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } 
     from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // Cấu hình Firebase chuẩn cho project: uy-phan
   const firebaseConfig = {
     apiKey: "AIzaSyC7JD5MhzMka84JPyVG_5LbZjPz8JOnbuc",
     authDomain: "uy-phan.firebaseapp.com",
@@ -42,52 +54,57 @@
     measurementId: "G-K6G6Z2XEXD"
   };
 
-  // Khởi tạo Firebase & Database
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
   let currentRole = 'sales';
   let checkins = [];
+  let orders = [];
 
-  // 1. Tự động đồng bộ dữ liệu Cloud theo thời gian thực (Real-time)
+  // Lắng nghe dữ liệu Check-in Realtime
   onSnapshot(collection(db, "checkins"), (snapshot) => {
     checkins = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    // Sắp xếp lượt mới nhất lên đầu
-    checkins.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    checkins.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     renderUI();
   });
 
-  // 2. Ghi nhận Check-in và lưu trực tiếp lên Cloud Firebase
+  // Lắng nghe dữ liệu Đơn hàng Realtime
+  onSnapshot(collection(db, "orders"), (snapshot) => {
+    orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    orders.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    renderUI();
+  });
+
+  // Lưu Check-in
   window.doCheckin = async function(storeName) {
-    if (!navigator.geolocation) {
-      alert("Trình duyệt không hỗ trợ đo tọa độ GPS");
-      return;
-    }
-    
     navigator.geolocation.getCurrentPosition(async (pos) => {
-      try {
-        await addDoc(collection(db, "checkins"), {
-          salesName: "Nguyễn Văn An",
-          storeName: storeName,
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          createdAt: serverTimestamp()
-        });
-        alert("Đã lưu Check-in thành công lên Cloud!");
-      } catch (e) {
-        alert("Lỗi khi lưu dữ liệu: " + e.message);
-      }
-    }, () => {
-      // Mô phỏng tọa độ ngẫu nhiên nếu thiết bị tắt GPS
-      addDoc(collection(db, "checkins"), {
-        salesName: "Nguyễn Văn An",
-        storeName: storeName,
-        lat: 11.5350 + (Math.random() - 0.5) * 0.01,
-        lng: 106.8980 + (Math.random() - 0.5) * 0.01,
-        createdAt: serverTimestamp()
+      await addDoc(collection(db, "checkins"), {
+        salesName: "Nguyễn Văn An", storeName, lat: pos.coords.latitude, lng: pos.coords.longitude, createdAt: serverTimestamp()
       });
-      alert("Đã Check-in quầy (Chế độ mô phỏng GPS)!");
+      alert(`Đã Check-in tại ${storeName}!`);
+    }, () => {
+      addDoc(collection(db, "checkins"), {
+        salesName: "Nguyễn Văn An", storeName, lat: 11.5350, lng: 106.8980, createdAt: serverTimestamp()
+      });
+      alert(`Đã Check-in thành công tại ${storeName}!`);
     });
+  };
+
+  // Lưu Đơn hàng mới
+  window.submitOrder = async function(e) {
+    e.preventDefault();
+    const storeName = document.getElementById('ordStore').value;
+    const amount = Number(document.getElementById('ordAmount').value);
+    const note = document.getElementById('ordNote').value;
+
+    if (!amount) return alert("Vui lòng nhập giá trị đơn hàng!");
+
+    await addDoc(collection(db, "orders"), {
+      salesName: "Nguyễn Văn An", storeName, amount, note, createdAt: serverTimestamp()
+    });
+
+    alert("Đã gửi đơn hàng thành công lên Cloud!");
+    document.getElementById('ordForm').reset();
   };
 
   window.switchRole = function(role) {
@@ -95,43 +112,106 @@
     renderUI();
   };
 
-  // 3. Hiển thị Giao diện
   function renderUI() {
     const main = document.getElementById('mainContent');
-    
+    const totalRev = orders.reduce((sum, o) => sum + (o.amount || 0), 0);
+
     if (currentRole === 'sales') {
       main.innerHTML = `
         <h2>Màn hình Sales Đi Thị Trường</h2>
-        <p style="color:var(--muted);margin-bottom:16px;">Bấm nút để lưu vị trí GPS trực tiếp lên Cloud</p>
         
-        <div class="card">
-          <h3>Tạp hóa Cô Ba (KH001)</h3>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">12 Phú Riềng Đỏ, Đồng Xoài</p>
-          <button class="btn btn-amber" onclick="doCheckin('Tạp hóa Cô Ba')">📍 Check-in GPS Quầy Này</button>
-        </div>
+        <div class="grid">
+          <div class="card">
+            <h3>📍 Check-in Thị Trường</h3>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Chọn quầy ghé thăm:</p>
+            
+            <div style="margin-bottom:10px;">
+              <strong>Tạp hóa Cô Ba</strong> <span class="badge">KH001</span>
+              <button class="btn btn-amber btn-sm" style="width:100%;margin-top:6px;" onclick="doCheckin('Tạp hóa Cô Ba')">📍 Check-in Quầy Này</button>
+            </div>
+            <hr style="margin:10px 0;border:0;border-top:1px solid var(--line);">
+            <div>
+              <strong>Siêu thị Hồng Phát</strong> <span class="badge">KH002</span>
+              <button class="btn btn-amber btn-sm" style="width:100%;margin-top:6px;" onclick="doCheckin('Siêu thị Hồng Phát')">📍 Check-in Quầy Này</button>
+            </div>
+          </div>
 
-        <div class="card">
-          <h3>Siêu thị Hồng Phát (KH002)</h3>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">45 Trần Hưng Đạo, Đồng Xoài</p>
-          <button class="btn btn-amber" onclick="doCheckin('Siêu thị Hồng Phát')">📍 Check-in GPS Quầy Này</button>
+          <div class="card">
+            <h3>📝 Bắt Đơn Hàng Mới</h3>
+            <form id="ordForm" onsubmit="submitOrder(event)">
+              <label>Chọn Điểm Bán:</label>
+              <select id="ordStore">
+                <option value="Tạp hóa Cô Ba">Tạp hóa Cô Ba</option>
+                <option value="Siêu thị Hồng Phát">Siêu thị Hồng Phát</option>
+              </select>
+              
+              <label>Giá trị đơn hàng (VNĐ):</label>
+              <input type="number" id="ordAmount" placeholder="Ví dụ: 1500000" required>
+              
+              <label>Ghi chú sản phẩm:</label>
+              <textarea id="ordNote" rows="2" placeholder="Tên sản phẩm, số lượng..."></textarea>
+              
+              <button class="btn btn-green" style="width:100%;">🚀 Gửi Đơn Hàng Lên Cloud</button>
+            </form>
+          </div>
         </div>
       `;
     } else {
       main.innerHTML = `
-        <h2>Màn hình Quản Lý (Cloud Real-time)</h2>
-        <p style="color:var(--muted);margin-bottom:16px;">Tự động nhảy số tức thì khi Sales bấm check-in ngoài đường</p>
+        <h2>Màn hình Quản Lý (Real-time Cloud)</h2>
         
-        <div>
-          ${checkins.length === 0 ? '<p>Chưa có dữ liệu check-in nào trên Cloud...</p>' : ''}
-          ${checkins.map(item => `
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <strong>👤 ${item.salesName || 'Sales'}</strong>
-                <span class="badge">📍 ${item.lat?.toFixed(4)}, ${item.lng?.toFixed(4)}</span>
-              </div>
-              <div style="margin-top:6px;font-size:14px;">Đã ghé: <strong>${item.storeName}</strong></div>
-            </div>
-          `).join('')}
+        <div class="grid" style="margin-bottom:16px;">
+          <div class="card">
+            <span class="badge">Tổng Doanh Số Realtime</span>
+            <div class="stat-num">${totalRev.toLocaleString('vi-VN')} đ</div>
+          </div>
+          <div class="card">
+            <span class="badge">Tổng Lượt Check-in</span>
+            <div class="stat-num">${checkins.length} lượt</div>
+          </div>
+          <div class="card">
+            <span class="badge">Tổng Đơn Hàng</span>
+            <div class="stat-num">${orders.length} đơn</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <h3>📦 Danh Sách Đơn Hàng Vừa Phát Sinh</h3>
+          <table>
+            <thead>
+              <tr><th>Sales</th><th>Khách Hàng</th><th>Giá Trị</th><th>Ghi Chú</th></tr>
+            </thead>
+            <tbody>
+              ${orders.length === 0 ? '<tr><td colspan="4">Chưa có đơn hàng nào...</td></tr>' : ''}
+              ${orders.map(o => `
+                <tr>
+                  <td><b>${o.salesName}</b></td>
+                  <td>${o.storeName}</td>
+                  <td><b style="color:var(--green);">${(o.amount||0).toLocaleString('vi-VN')} đ</b></td>
+                  <td>${o.note || '---'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>📍 Nhật Ký Check-in GPS Tự Động</h3>
+          <table>
+            <thead>
+              <tr><th>Sales</th><th>Khách Hàng</th><th>Tọa Độ GPS</th></tr>
+            </thead>
+            <tbody>
+              ${checkins.length === 0 ? '<tr><td colspan="3">Chưa có dữ liệu check-in...</td></tr>' : ''}
+              ${checkins.map(c => `
+                <tr>
+                  <td><b>${c.salesName}</b></td>
+                  <td>${c.storeName}</td>
+                  <td><span class="badge">📍 ${c.lat?.toFixed(4)}, ${c.lng?.toFixed(4)}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
         </div>
       `;
     }
@@ -146,16 +226,16 @@
   <div class="topbar">
     <div>
       <h1>Tuyến Thị Trường</h1>
-      <div class="status-online"><span class="status-dot"></span> Đã kết nối Firebase: uy-phan</div>
+      <div class="status-online"><span class="status-dot"></span> Đã kết nối Cloud Firebase</div>
     </div>
-    <div>
+    <div class="nav-btns">
       <button class="btn" onclick="switchRole('sales')">Màn hình Sales</button>
       <button class="btn btn-amber" onclick="switchRole('manager')">Màn hình Quản lý</button>
     </div>
   </div>
 
   <div class="panel">
-    <div id="mainContent">Đang kết nối Cloud Database...</div>
+    <div id="mainContent">Đang tải dữ liệu...</div>
   </div>
 </div>
 
