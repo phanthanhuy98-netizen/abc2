@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hệ Thống Quản Lý Sales Thị Trường — Enterprise</title>
+<title>Hệ Thống Quản Lý Sales Thị Trường — Enterprise Full</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#12213D">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,27 +12,30 @@
 <style>
   :root { --navy:#12213D; --amber:#FCA311; --paper:#F6F1E6; --line:#D9D0BC; --muted:#6B6558; --green:#2D6A4F; --red:#C1121F; }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Inter',sans-serif;background:var(--navy);color:#1a1a1a;padding:16px;}
+  body{font-family:'Inter',sans-serif;background:var(--navy);color:#1a1a1a;padding:12px;}
   .app{max-width:1200px;margin:0 auto;}
-  .panel{background:var(--paper);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,0.3);margin-top:16px;}
+  .panel{background:var(--paper);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,0.3);margin-top:12px;}
   h1,h2,h3,h4{font-family:'Oswald',sans-serif;color:var(--navy);}
   
   .topbar{display:flex;justify-content:space-between;align-items:center;color:#fff;flex-wrap:wrap;gap:12px;}
-  .nav-btns{display:flex;gap:8px;}
-  .btn{background:var(--navy);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:600;cursor:pointer;}
+  .nav-btns{display:flex;gap:6px;flex-wrap:wrap;}
+  .btn{background:var(--navy);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
   .btn-amber{background:var(--amber);color:var(--navy);}
   .btn-green{background:var(--green);color:#fff;}
   .btn-red{background:var(--red);color:#fff;}
-  .btn-sm{padding:4px 8px;font-size:12px;}
+  .btn-sm{padding:4px 8px;font-size:11px;}
   
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:16px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:12px;}
   .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;}
-  .badge{display:inline-block;padding:3px 8px;background:#EFE7D6;border-radius:4px;font-size:12px;font-weight:700;}
+  .badge{display:inline-block;padding:3px 8px;background:#EFE7D6;border-radius:4px;font-size:11px;font-weight:700;}
   
-  input, select, textarea { width:100%; padding:8px; margin:4px 0 10px; border:1px solid var(--line); border-radius:6px; font-family:inherit; }
+  input, select, textarea { width:100%; padding:8px; margin:4px 0 10px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:13px; }
   table { width:100%; border-collapse:collapse; margin-top:10px; }
-  th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); font-size:13px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); font-size:12px; }
   th { background:#EFE7D6; color:var(--navy); }
+  
+  .login-box{max-width:360px;margin:60px auto;background:#fff;padding:24px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.4);}
+  .hidden{display:none !important;}
 </style>
 
 <script type="module">
@@ -53,114 +56,308 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  let currentTab = 'sales'; // 'sales', 'manager', 'stores', 'users'
-  let stores = [], orders = [], users = [];
+  // App State
+  let currentUser = null; // User đang đăng nhập
+  let currentTab = 'sales';
+  let stores = [], orders = [], users = [], checkins = [];
 
-  // Đồng bộ Realtime Khách Hàng
-  onSnapshot(collection(db, "stores"), (snapshot) => {
-    stores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  // Tự động lắng nghe Realtime từ Cloud
+  onSnapshot(collection(db, "stores"), snap => { stores = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
+  onSnapshot(collection(db, "orders"), snap => { orders = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
+  onSnapshot(collection(db, "users"), snap => { users = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
+  onSnapshot(collection(db, "checkins"), snap => { checkins = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
+
+  // 1. HỆ THỐNG ĐĂNG NHẬP / XÁC THỰC
+  window.handleLogin = function(e) {
+    e.preventDefault();
+    const u = document.getElementById('logUser').value;
+    const p = document.getElementById('logPass').value;
+
+    if (u === 'admin' && p === 'admin123') {
+      currentUser = { name: 'Quản Lý Cấp Cao', role: 'admin' };
+    } else {
+      const found = users.find(x => x.username === u && x.password === p);
+      if (found) {
+        currentUser = found;
+      } else {
+        alert("Tài khoản hoặc mật khẩu không chính xác!\n(Gợi ý Admin: admin / admin123)");
+        return;
+      }
+    }
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('appView').classList.remove('hidden');
     renderUI();
-  });
+  };
 
-  // Đồng bộ Realtime Đơn Hàng
-  onSnapshot(collection(db, "orders"), (snapshot) => {
-    orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderUI();
-  });
+  window.handleLogout = function() {
+    currentUser = null;
+    document.getElementById('loginView').classList.remove('hidden');
+    document.getElementById('appView').classList.add('hidden');
+  };
 
-  // Quản lý Khách Hàng (CRUD)
+  // 2. QUẢN LÝ NHÂN VIÊN (CRUD)
+  window.addUser = async function(e) {
+    e.preventDefault();
+    const name = document.getElementById('usrName').value;
+    const username = document.getElementById('usrUser').value;
+    const password = document.getElementById('usrPass').value;
+    const role = document.getElementById('usrRole').value;
+
+    await addDoc(collection(db, "users"), { name, username, password, role, createdAt: serverTimestamp() });
+    alert("Đã thêm nhân viên thành công!");
+    document.getElementById('usrForm').reset();
+  };
+
+  window.deleteUser = async function(id) {
+    if (confirm("Xóa tài khoản nhân viên này?")) await deleteDoc(doc(db, "users", id));
+  };
+
+  // 3. QUẢN LÝ KHÁCH HÀNG / QUẦY HÀNG (CRUD)
   window.addStore = async function(e) {
     e.preventDefault();
     const name = document.getElementById('stName').value;
     const address = document.getElementById('stAddr').value;
-    await addDoc(collection(db, "stores"), { name, address, createdAt: serverTimestamp() });
+    const phone = document.getElementById('stPhone').value;
+
+    await addDoc(collection(db, "stores"), { name, address, phone, createdAt: serverTimestamp() });
+    alert("Đã thêm khách hàng mới!");
     document.getElementById('stForm').reset();
   };
 
   window.deleteStore = async function(id) {
-    if (confirm("Xóa điểm bán này khỏi hệ thống?")) {
-      await deleteDoc(doc(db, "stores", id));
-    }
+    if (confirm("Xóa điểm bán này khỏi hệ thống?")) await deleteDoc(doc(db, "stores", id));
   };
 
-  // Quản lý Đơn Hàng (CRUD)
+  // 4. QUẢN LÝ ĐƠN HÀNG (CRUD & CHUYỂN TRẠNG THÁI)
+  window.addOrder = async function(e) {
+    e.preventDefault();
+    const storeName = document.getElementById('ordStore').value;
+    const amount = Number(document.getElementById('ordAmount').value);
+    const note = document.getElementById('ordNote').value;
+
+    await addDoc(collection(db, "orders"), {
+      salesName: currentUser.name,
+      storeName, amount, note, status: 'Chờ duyệt',
+      createdAt: serverTimestamp()
+    });
+    alert("Đã tạo đơn hàng mới!");
+    document.getElementById('ordForm').reset();
+  };
+
+  window.updateOrderStatus = async function(id, status) {
+    await updateDoc(doc(db, "orders", id), { status });
+  };
+
   window.deleteOrder = async function(id) {
-    if (confirm("Bạn có chắc muốn xóa đơn hàng này?")) {
-      await deleteDoc(doc(db, "orders", id));
-    }
+    if (confirm("Bạn chắc chắn muốn xóa đơn hàng này?")) await deleteDoc(doc(db, "orders", id));
   };
 
-  window.switchTab = function(tab) {
-    currentTab = tab;
-    renderUI();
+  // 5. CHECK-IN GPS
+  window.doCheckin = function(storeName) {
+    navigator.geolocation.getCurrentPosition(async pos => {
+      await addDoc(collection(db, "checkins"), {
+        salesName: currentUser.name, storeName,
+        lat: pos.coords.latitude, lng: pos.coords.longitude,
+        createdAt: serverTimestamp()
+      });
+      alert(`Check-in thành công tại ${storeName}!`);
+    }, () => {
+      addDoc(collection(db, "checkins"), {
+        salesName: currentUser.name, storeName, lat: 11.535, lng: 106.898, createdAt: serverTimestamp()
+      });
+      alert(`Check-in thành công tại ${storeName} (Mô phỏng GPS)!`);
+    });
   };
 
+  window.switchTab = function(tab) { currentTab = tab; renderUI(); };
+
+  // RENDER GIAO DIỆN PHÂN QUYỀN
   function renderUI() {
+    if (!currentUser) return;
+    
+    document.getElementById('userInfo').innerText = `${currentUser.name} (${currentUser.role.toUpperCase()})`;
     const main = document.getElementById('mainContent');
     
+    // TAB SALES: ĐI THỊ TRƯỜNG & LÊN ĐƠN
     if (currentTab === 'sales') {
       main.innerHTML = `
-        <h2>Màn hình Sales Thị Trường</h2>
+        <h2>Màn Hình Sales Đi Thị Trường</h2>
         <div class="grid">
           <div class="card">
-            <h3>Danh Sách Điểm Bán Khách Hàng</h3>
+            <h3>📍 Ghé Thăm Quầy & Check-in GPS</h3>
+            ${stores.length === 0 ? '<p>Chưa có danh sách khách hàng. Hãy bảo Admin thêm vào!</p>' : ''}
             ${stores.map(s => `
-              <div style="margin-top:8px;padding-bottom:8px;border-bottom:1px solid #eee;">
-                <b>${s.name}</b> - <small>${s.address}</small>
+              <div style="margin-top:10px;padding-bottom:8px;border-bottom:1px solid #eee;">
+                <b>${s.name}</b> <br><small style="color:var(--muted);">${s.address} - 📞${s.phone||'N/A'}</small>
+                <button class="btn btn-amber btn-sm" style="width:100%;margin-top:6px;" onclick="doCheckin('${s.name}')">📍 Check-in Tại Quầy</button>
               </div>
             `).join('')}
           </div>
-        </div>
-      `;
-    } else if (currentTab === 'stores') {
-      main.innerHTML = `
-        <h2>Quản Lý Điểm Bán / Khách Hàng (CRUD)</h2>
-        <div class="grid">
+
           <div class="card">
-            <h3>Thêm Điểm Bán Mới</h3>
-            <form id="stForm" onsubmit="addStore(event)">
-              <input type="text" id="stName" placeholder="Tên cửa hàng/quầy" required>
-              <input type="text" id="stAddr" placeholder="Địa chỉ chi tiết" required>
-              <button class="btn btn-green" style="width:100%;">+ Thêm Khách Hàng</button>
+            <h3>📝 Tạo Đơn Hàng Mới</h3>
+            <form id="ordForm" onsubmit="addOrder(event)">
+              <label>Chọn Điểm Bán:</label>
+              <select id="ordStore" required>
+                ${stores.map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
+              </select>
+              
+              <label>Giá trị đơn hàng (VNĐ):</label>
+              <input type="number" id="ordAmount" placeholder="Ví dụ: 1500000" required>
+              
+              <label>Ghi chú sản phẩm:</label>
+              <textarea id="ordNote" rows="2" placeholder="Tên sp, số lượng..."></textarea>
+              
+              <button class="btn btn-green" style="width:100%;">🚀 Gửi Đơn Hàng Lên Cloud</button>
             </form>
           </div>
-          <div class="card">
-            <h3>Danh Sách Khách Hàng</h3>
-            <table>
-              <tr><th>Tên Quầy</th><th>Địa Chỉ</th><th>Thao Tác</th></tr>
-              ${stores.map(s => `
+        </div>
+      `;
+    } 
+    // TAB ĐƠN HÀNG (QUẢN LÝ DỰỆT/XÓA/SỬA)
+    else if (currentTab === 'orders') {
+      main.innerHTML = `
+        <h2>Quản Lý Đơn Hàng Vận Hành (CRUD)</h2>
+        <div class="card">
+          <table>
+            <thead>
+              <tr><th>Sales</th><th>Khách Hàng</th><th>Giá Trị</th><th>Trạng Thái</th><th>Ghi Chú</th><th>Thao Tác</th></tr>
+            </thead>
+            <tbody>
+              ${orders.map(o => `
                 <tr>
-                  <td><b>${s.name}</b></td>
-                  <td>${s.address}</td>
-                  <td><button class="btn btn-red btn-sm" onclick="deleteStore('${s.id}')">Xóa</button></td>
+                  <td><b>${o.salesName}</b></td>
+                  <td>${o.storeName}</td>
+                  <td><b style="color:var(--green);">${(o.amount||0).toLocaleString('vi-VN')} đ</b></td>
+                  <td><span class="badge">${o.status || 'Chờ duyệt'}</span></td>
+                  <td>${o.note || '---'}</td>
+                  <td>
+                    ${currentUser.role === 'admin' ? `
+                      <button class="btn btn-green btn-sm" onclick="updateOrderStatus('${o.id}', 'Đã duyệt')">Duyệt</button>
+                      <button class="btn btn-red btn-sm" onclick="deleteOrder('${o.id}')">Xóa</button>
+                    ` : 'Chỉ xem'}
+                  </td>
                 </tr>
               `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+    // TAB KHÁCH HÀNG (THÊM/XÓA/SỬA CRM)
+    else if (currentTab === 'stores') {
+      main.innerHTML = `
+        <h2>Quản Lý Khách Hàng / Điểm Bán (CRM)</h2>
+        <div class="grid">
+          ${currentUser.role === 'admin' ? `
+            <div class="card">
+              <h3>Thêm Điểm Bán Mới</h3>
+              <form id="stForm" onsubmit="addStore(event)">
+                <input type="text" id="stName" placeholder="Tên quầy/cửa hàng" required>
+                <input type="text" id="stAddr" placeholder="Địa chỉ chi tiết" required>
+                <input type="text" id="stPhone" placeholder="Số điện thoại chủ quầy">
+                <button class="btn btn-green" style="width:100%;">+ Thêm Khách Hàng</button>
+              </form>
+            </div>
+          ` : ''}
+          <div class="card" style="grid-column: span 2;">
+            <h3>Danh Sách Khách Hàng</h3>
+            <table>
+              <thead><tr><th>Tên Quầy</th><th>Địa Chỉ</th><th>SĐT</th>${currentUser.role==='admin'?'<th>Xóa</th>':''}</tr></thead>
+              <tbody>
+                ${stores.map(s => `
+                  <tr>
+                    <td><b>${s.name}</b></td>
+                    <td>${s.address}</td>
+                    <td>${s.phone||'---'}</td>
+                    ${currentUser.role==='admin'? `<td><button class="btn btn-red btn-sm" onclick="deleteStore('${s.id}')">Xóa</button></td>`:''}
+                  </tr>
+                `).join('')}
+              </tbody>
             </table>
           </div>
         </div>
       `;
-    } else {
-      main.innerHTML = `<h2>Màn hình Quản Lý Tổng Thể</h2>`;
+    }
+    // TAB QUẢN LÝ NHÂN VIÊN (CHỈ ADMIN)
+    else if (currentTab === 'users') {
+      main.innerHTML = `
+        <h2>Quản Lý Nhân Viên Thị Trường (HR)</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>Tạo Tài Khoản Nhân Viên</h3>
+            <form id="usrForm" onsubmit="addUser(event)">
+              <input type="text" id="usrName" placeholder="Họ và tên nhân viên" required>
+              <input type="text" id="usrUser" placeholder="Tên đăng nhập" required>
+              <input type="password" id="usrPass" placeholder="Mật khẩu" required>
+              <label>Chức vụ:</label>
+              <select id="usrRole">
+                <option value="sales">Nhân viên Sales</option>
+                <option value="admin">Quản lý Admin</option>
+              </select>
+              <button class="btn btn-green" style="width:100%;">+ Cấp Tài Khoản</button>
+            </form>
+          </div>
+          <div class="card" style="grid-column: span 2;">
+            <h3>Danh Sách Nhân Viên</h3>
+            <table>
+              <thead><tr><th>Họ Tên</th><th>Tài Khoản</th><th>Mật Khẩu</th><th>Chức Vụ</th><th>Thao Tác</th></tr></thead>
+              <tbody>
+                ${users.map(u => `
+                  <tr>
+                    <td><b>${u.name}</b></td>
+                    <td>${u.username}</td>
+                    <td><code>${u.password}</code></td>
+                    <td><span class="badge">${u.role}</span></td>
+                    <td><button class="btn btn-red btn-sm" onclick="deleteUser('${u.id}')">Xóa</button></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
     }
   }
-
-  renderUI();
 </script>
 </head>
 <body>
 
 <div class="app">
-  <div class="topbar">
-    <h1>Tuyến Thị Trường Enterprise</h1>
-    <div class="nav-btns">
-      <button class="btn" onclick="switchTab('sales')">Sales</button>
-      <button class="btn btn-amber" onclick="switchTab('stores')">Khách Hàng</button>
-      <button class="btn btn-amber" onclick="switchTab('manager')">Báo Cáo</button>
+  <!-- MÀN HÌNH ĐĂNG NHẬP -->
+  <div id="loginView" class="login-box">
+    <h2 style="text-align:center;margin-bottom:16px;">ĐĂNG NHẬP APP SALES</h2>
+    <form onsubmit="handleLogin(event)">
+      <label>Tài khoản:</label>
+      <input type="text" id="logUser" placeholder="Nhập tài khoản (vd: admin)" required>
+      <label>Mật khẩu:</label>
+      <input type="password" id="logPass" placeholder="Nhập mật khẩu (vd: admin123)" required>
+      <button class="btn btn-amber" style="width:100%;padding:12px;margin-top:10px;font-size:15px;">Đăng Nhập Hệ Thống</button>
+    </form>
+    <div style="font-size:11px;color:var(--muted);margin-top:12px;text-align:center;">
+      Mặc định Admin: <b>admin</b> / Pass: <b>admin123</b>
     </div>
   </div>
 
-  <div class="panel">
-    <div id="mainContent">Đang kết nối hệ thống...</div>
+  <!-- MÀN HÌNH CHÍNH BÊN TRONG -->
+  <div id="appView" class="hidden">
+    <div class="topbar">
+      <div>
+        <h1>Tuyến Thị Trường Enterprise</h1>
+        <div style="font-size:12px;">Xin chào: <b id="userInfo" style="color:var(--amber);">---</b></div>
+      </div>
+      <div class="nav-btns">
+        <button class="btn" onclick="switchTab('sales')">Đi Thị Trường</button>
+        <button class="btn btn-amber" onclick="switchTab('orders')">Đơn Hàng</button>
+        <button class="btn btn-amber" onclick="switchTab('stores')">Khách Hàng</button>
+        <button class="btn btn-amber" onclick="switchTab('users')">Nhân Viên</button>
+        <button class="btn btn-red" onclick="handleLogout()">Đăng Xuất</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div id="mainContent">Đang tải dữ liệu hệ thống...</div>
+    </div>
   </div>
 </div>
 
