@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tuyến Thị Trường — Quản Lý Sales Realtime</title>
+<title>Hệ Thống Quản Lý Sales Thị Trường — Enterprise</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#12213D">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,35 +13,31 @@
   :root { --navy:#12213D; --amber:#FCA311; --paper:#F6F1E6; --line:#D9D0BC; --muted:#6B6558; --green:#2D6A4F; --red:#C1121F; }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Inter',sans-serif;background:var(--navy);color:#1a1a1a;padding:16px;}
-  .app{max-width:1100px;margin:0 auto;}
+  .app{max-width:1200px;margin:0 auto;}
   .panel{background:var(--paper);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,0.3);margin-top:16px;}
   h1,h2,h3,h4{font-family:'Oswald',sans-serif;color:var(--navy);}
   
   .topbar{display:flex;justify-content:space-between;align-items:center;color:#fff;flex-wrap:wrap;gap:12px;}
   .nav-btns{display:flex;gap:8px;}
-  .btn{background:var(--navy);color:#fff;border:none;padding:10px 16px;border-radius:20px;font-weight:600;cursor:pointer;transition:0.2s;}
+  .btn{background:var(--navy);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:600;cursor:pointer;}
   .btn-amber{background:var(--amber);color:var(--navy);}
   .btn-green{background:var(--green);color:#fff;}
-  .btn-sm{padding:6px 12px;font-size:13px;}
+  .btn-red{background:var(--red);color:#fff;}
+  .btn-sm{padding:4px 8px;font-size:12px;}
   
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:16px;}
   .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;}
   .badge{display:inline-block;padding:3px 8px;background:#EFE7D6;border-radius:4px;font-size:12px;font-weight:700;}
   
-  .stat-num{font-size:28px;font-weight:700;color:var(--navy);margin-top:4px;}
-  .status-online{color:var(--green);font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;}
-  .status-dot{width:8px;height:8px;background:var(--green);border-radius:50%;display:inline-block;}
-
-  input, select, textarea { width:100%; padding:10px; margin:6px 0 12px; border:1px solid var(--line); border-radius:8px; font-family:inherit; }
+  input, select, textarea { width:100%; padding:8px; margin:4px 0 10px; border:1px solid var(--line); border-radius:6px; font-family:inherit; }
   table { width:100%; border-collapse:collapse; margin-top:10px; }
-  th, td { text-align:left; padding:10px; border-bottom:1px solid var(--line); font-size:14px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); font-size:13px; }
   th { background:#EFE7D6; color:var(--navy); }
 </style>
 
-<!-- Firebase SDK Modular -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } 
+  import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } 
     from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -57,163 +53,94 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  let currentRole = 'sales';
-  let checkins = [];
-  let orders = [];
+  let currentTab = 'sales'; // 'sales', 'manager', 'stores', 'users'
+  let stores = [], orders = [], users = [];
 
-  // Lắng nghe dữ liệu Check-in Realtime
-  onSnapshot(collection(db, "checkins"), (snapshot) => {
-    checkins = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    checkins.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  // Đồng bộ Realtime Khách Hàng
+  onSnapshot(collection(db, "stores"), (snapshot) => {
+    stores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderUI();
   });
 
-  // Lắng nghe dữ liệu Đơn hàng Realtime
+  // Đồng bộ Realtime Đơn Hàng
   onSnapshot(collection(db, "orders"), (snapshot) => {
     orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    orders.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     renderUI();
   });
 
-  // Lưu Check-in
-  window.doCheckin = async function(storeName) {
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      await addDoc(collection(db, "checkins"), {
-        salesName: "Nguyễn Văn An", storeName, lat: pos.coords.latitude, lng: pos.coords.longitude, createdAt: serverTimestamp()
-      });
-      alert(`Đã Check-in tại ${storeName}!`);
-    }, () => {
-      addDoc(collection(db, "checkins"), {
-        salesName: "Nguyễn Văn An", storeName, lat: 11.5350, lng: 106.8980, createdAt: serverTimestamp()
-      });
-      alert(`Đã Check-in thành công tại ${storeName}!`);
-    });
-  };
-
-  // Lưu Đơn hàng mới
-  window.submitOrder = async function(e) {
+  // Quản lý Khách Hàng (CRUD)
+  window.addStore = async function(e) {
     e.preventDefault();
-    const storeName = document.getElementById('ordStore').value;
-    const amount = Number(document.getElementById('ordAmount').value);
-    const note = document.getElementById('ordNote').value;
-
-    if (!amount) return alert("Vui lòng nhập giá trị đơn hàng!");
-
-    await addDoc(collection(db, "orders"), {
-      salesName: "Nguyễn Văn An", storeName, amount, note, createdAt: serverTimestamp()
-    });
-
-    alert("Đã gửi đơn hàng thành công lên Cloud!");
-    document.getElementById('ordForm').reset();
+    const name = document.getElementById('stName').value;
+    const address = document.getElementById('stAddr').value;
+    await addDoc(collection(db, "stores"), { name, address, createdAt: serverTimestamp() });
+    document.getElementById('stForm').reset();
   };
 
-  window.switchRole = function(role) {
-    currentRole = role;
+  window.deleteStore = async function(id) {
+    if (confirm("Xóa điểm bán này khỏi hệ thống?")) {
+      await deleteDoc(doc(db, "stores", id));
+    }
+  };
+
+  // Quản lý Đơn Hàng (CRUD)
+  window.deleteOrder = async function(id) {
+    if (confirm("Bạn có chắc muốn xóa đơn hàng này?")) {
+      await deleteDoc(doc(db, "orders", id));
+    }
+  };
+
+  window.switchTab = function(tab) {
+    currentTab = tab;
     renderUI();
   };
 
   function renderUI() {
     const main = document.getElementById('mainContent');
-    const totalRev = orders.reduce((sum, o) => sum + (o.amount || 0), 0);
-
-    if (currentRole === 'sales') {
+    
+    if (currentTab === 'sales') {
       main.innerHTML = `
-        <h2>Màn hình Sales Đi Thị Trường</h2>
-        
+        <h2>Màn hình Sales Thị Trường</h2>
         <div class="grid">
           <div class="card">
-            <h3>📍 Check-in Thị Trường</h3>
-            <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Chọn quầy ghé thăm:</p>
-            
-            <div style="margin-bottom:10px;">
-              <strong>Tạp hóa Cô Ba</strong> <span class="badge">KH001</span>
-              <button class="btn btn-amber btn-sm" style="width:100%;margin-top:6px;" onclick="doCheckin('Tạp hóa Cô Ba')">📍 Check-in Quầy Này</button>
-            </div>
-            <hr style="margin:10px 0;border:0;border-top:1px solid var(--line);">
-            <div>
-              <strong>Siêu thị Hồng Phát</strong> <span class="badge">KH002</span>
-              <button class="btn btn-amber btn-sm" style="width:100%;margin-top:6px;" onclick="doCheckin('Siêu thị Hồng Phát')">📍 Check-in Quầy Này</button>
-            </div>
+            <h3>Danh Sách Điểm Bán Khách Hàng</h3>
+            ${stores.map(s => `
+              <div style="margin-top:8px;padding-bottom:8px;border-bottom:1px solid #eee;">
+                <b>${s.name}</b> - <small>${s.address}</small>
+              </div>
+            `).join('')}
           </div>
-
+        </div>
+      `;
+    } else if (currentTab === 'stores') {
+      main.innerHTML = `
+        <h2>Quản Lý Điểm Bán / Khách Hàng (CRUD)</h2>
+        <div class="grid">
           <div class="card">
-            <h3>📝 Bắt Đơn Hàng Mới</h3>
-            <form id="ordForm" onsubmit="submitOrder(event)">
-              <label>Chọn Điểm Bán:</label>
-              <select id="ordStore">
-                <option value="Tạp hóa Cô Ba">Tạp hóa Cô Ba</option>
-                <option value="Siêu thị Hồng Phát">Siêu thị Hồng Phát</option>
-              </select>
-              
-              <label>Giá trị đơn hàng (VNĐ):</label>
-              <input type="number" id="ordAmount" placeholder="Ví dụ: 1500000" required>
-              
-              <label>Ghi chú sản phẩm:</label>
-              <textarea id="ordNote" rows="2" placeholder="Tên sản phẩm, số lượng..."></textarea>
-              
-              <button class="btn btn-green" style="width:100%;">🚀 Gửi Đơn Hàng Lên Cloud</button>
+            <h3>Thêm Điểm Bán Mới</h3>
+            <form id="stForm" onsubmit="addStore(event)">
+              <input type="text" id="stName" placeholder="Tên cửa hàng/quầy" required>
+              <input type="text" id="stAddr" placeholder="Địa chỉ chi tiết" required>
+              <button class="btn btn-green" style="width:100%;">+ Thêm Khách Hàng</button>
             </form>
+          </div>
+          <div class="card">
+            <h3>Danh Sách Khách Hàng</h3>
+            <table>
+              <tr><th>Tên Quầy</th><th>Địa Chỉ</th><th>Thao Tác</th></tr>
+              ${stores.map(s => `
+                <tr>
+                  <td><b>${s.name}</b></td>
+                  <td>${s.address}</td>
+                  <td><button class="btn btn-red btn-sm" onclick="deleteStore('${s.id}')">Xóa</button></td>
+                </tr>
+              `).join('')}
+            </table>
           </div>
         </div>
       `;
     } else {
-      main.innerHTML = `
-        <h2>Màn hình Quản Lý (Real-time Cloud)</h2>
-        
-        <div class="grid" style="margin-bottom:16px;">
-          <div class="card">
-            <span class="badge">Tổng Doanh Số Realtime</span>
-            <div class="stat-num">${totalRev.toLocaleString('vi-VN')} đ</div>
-          </div>
-          <div class="card">
-            <span class="badge">Tổng Lượt Check-in</span>
-            <div class="stat-num">${checkins.length} lượt</div>
-          </div>
-          <div class="card">
-            <span class="badge">Tổng Đơn Hàng</span>
-            <div class="stat-num">${orders.length} đơn</div>
-          </div>
-        </div>
-
-        <div class="card" style="margin-bottom:16px;">
-          <h3>📦 Danh Sách Đơn Hàng Vừa Phát Sinh</h3>
-          <table>
-            <thead>
-              <tr><th>Sales</th><th>Khách Hàng</th><th>Giá Trị</th><th>Ghi Chú</th></tr>
-            </thead>
-            <tbody>
-              ${orders.length === 0 ? '<tr><td colspan="4">Chưa có đơn hàng nào...</td></tr>' : ''}
-              ${orders.map(o => `
-                <tr>
-                  <td><b>${o.salesName}</b></td>
-                  <td>${o.storeName}</td>
-                  <td><b style="color:var(--green);">${(o.amount||0).toLocaleString('vi-VN')} đ</b></td>
-                  <td>${o.note || '---'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="card">
-          <h3>📍 Nhật Ký Check-in GPS Tự Động</h3>
-          <table>
-            <thead>
-              <tr><th>Sales</th><th>Khách Hàng</th><th>Tọa Độ GPS</th></tr>
-            </thead>
-            <tbody>
-              ${checkins.length === 0 ? '<tr><td colspan="3">Chưa có dữ liệu check-in...</td></tr>' : ''}
-              ${checkins.map(c => `
-                <tr>
-                  <td><b>${c.salesName}</b></td>
-                  <td>${c.storeName}</td>
-                  <td><span class="badge">📍 ${c.lat?.toFixed(4)}, ${c.lng?.toFixed(4)}</span></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
+      main.innerHTML = `<h2>Màn hình Quản Lý Tổng Thể</h2>`;
     }
   }
 
@@ -224,18 +151,16 @@
 
 <div class="app">
   <div class="topbar">
-    <div>
-      <h1>Tuyến Thị Trường</h1>
-      <div class="status-online"><span class="status-dot"></span> Đã kết nối Cloud Firebase</div>
-    </div>
+    <h1>Tuyến Thị Trường Enterprise</h1>
     <div class="nav-btns">
-      <button class="btn" onclick="switchRole('sales')">Màn hình Sales</button>
-      <button class="btn btn-amber" onclick="switchRole('manager')">Màn hình Quản lý</button>
+      <button class="btn" onclick="switchTab('sales')">Sales</button>
+      <button class="btn btn-amber" onclick="switchTab('stores')">Khách Hàng</button>
+      <button class="btn btn-amber" onclick="switchTab('manager')">Báo Cáo</button>
     </div>
   </div>
 
   <div class="panel">
-    <div id="mainContent">Đang tải dữ liệu...</div>
+    <div id="mainContent">Đang kết nối hệ thống...</div>
   </div>
 </div>
 
