@@ -1,904 +1,216 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tuyến Thị Trường — Quản lý Sales ngoài</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2312213D'/%3E%3Ctext x='50' y='66' font-size='46' text-anchor='middle' fill='%23FCA311' font-family='Arial' font-weight='bold'%3ETT%3C/text%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --navy:#12213D; --navy2:#1B2F52; --amber:#FCA311; --amber-dark:#D6870A;
-    --paper:#F6F1E6; --paper2:#EFE7D6; --ink:#1A1B1F; --green:#2D6A4F;
-    --green-bg:#E4F0EA; --red:#C1121F; --red-bg:#FBE7E7; --blue:#2A5C8A;
-    --blue-bg:#DCEBFB; --line:#D9D0BC; --muted:#6B6558; --radius:14px;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{font-family:'Inter',sans-serif;background:var(--navy);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
-  @keyframes fadeInUp{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
-  
-  .app{max-width:1180px;margin:0 auto;padding:20px;}
-  h1,h2,h3,.display{font-family:'Oswald',sans-serif; letter-spacing:0.02em; text-transform:uppercase;}
-  .mono{font-family:'Space Mono',monospace;}
-
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 4px 20px 4px;}
-  .brand{display:flex;align-items:center;gap:12px;color:var(--paper);}
-  .brand-mark{
-    width:38px;height:38px;border-radius:8px;background:linear-gradient(135deg,var(--amber),var(--amber-dark));
-    display:flex;align-items:center;justify-content:center;font-family:'Oswald';font-weight:700;color:var(--navy);font-size:18px;flex-shrink:0;
-  }
-  .brand-text .t1{font-family:'Oswald';font-weight:600;font-size:18px;letter-spacing:0.04em;text-transform:uppercase;}
-  .brand-text .t2{font-size:11px;color:#A9B3C9;letter-spacing:0.05em;}
-  .who{display:flex;align-items:center;gap:10px;}
-  .who span{color:#CBD3E3;font-size:13px;}
-  .btn-ghost{background:transparent;border:1px solid #3A4C74;color:#CBD3E3;padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Inter';}
-  .btn-ghost:hover{border-color:var(--amber);color:var(--amber);}
-
-  .panel{background:var(--paper);border-radius:20px;padding:26px;box-shadow:0 20px 50px -20px rgba(0,0,0,0.5);min-height:60vh;animation:fadeInUp 0.35s ease both;}
-
-  .login-wrap{display:flex;flex-direction:column;align-items:center;padding:30px 10px 10px;}
-  .login-wrap h2{font-size:22px;color:var(--navy);margin:0 0 4px;}
-  .login-sub{color:var(--muted);font-size:14px;margin-bottom:26px;text-align:center;}
-  .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:520px;margin-bottom:10px;}
-  .role-card{border:2px solid var(--line);background:#fff;border-radius:var(--radius);padding:18px;cursor:pointer;text-align:left;transition:transform 0.15s ease, border-color 0.15s ease;}
-  .role-card:hover{border-color:var(--amber);transform:translateY(-2px);}
-  .role-card .icon{font-size:22px;}
-  .role-card .rt{font-family:'Oswald';text-transform:uppercase;font-size:14px;margin-top:8px;color:var(--navy);}
-  .role-card .rd{font-size:12px;color:var(--muted);margin-top:2px;}
-
-  .emp-list{width:100%;max-width:520px;display:flex;flex-direction:column;gap:8px;margin-top:8px;}
-  .emp-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;}
-  .emp-row:hover{border-color:var(--amber);}
-  .avatar{width:34px;height:34px;border-radius:50%;background:var(--navy);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
-  .emp-row .en{font-weight:600;font-size:14px;}
-  .emp-row .er{font-size:12px;color:var(--muted);}
-  .back-link{margin-top:16px;font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline;}
-
-  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
-  .section-head h2{font-size:20px;color:var(--navy);margin:0;}
-  .section-head .sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
-  .tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
-  .tab{padding:8px 16px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--muted);}
-  .tab.active{background:var(--navy);color:var(--paper);border-color:var(--navy);}
-
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:22px;}
-  .kpi{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;}
-  .kpi .v{font-family:'Oswald';font-size:26px;color:var(--navy);}
-  .kpi .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;}
-  .kpi.amber .v{color:var(--amber-dark);}
-  .kpi.green .v{color:var(--green);}
-
-  .cat-chip{padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;}
-  .cat-chip.vip{background:var(--amber);color:var(--navy);}
-  .cat-chip.potential{background:var(--blue-bg);color:var(--blue);}
-  .cat-chip.normal{background:var(--paper2);color:var(--muted);}
-
-  .code-badge{display:inline-block;padding:2px 6px;border-radius:4px;background:var(--paper2);color:var(--navy);font-family:'Space Mono';font-size:11px;font-weight:700;margin-right:6px;}
-
-  .outcome-tag{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;margin-top:6px;}
-  .outcome-tag.mua{background:var(--green-bg);color:var(--green);}
-  .outcome-tag.khong{background:#EDEAE0;color:var(--muted);}
-  .outcome-tag.dong{background:var(--red-bg);color:var(--red);}
-  .outcome-tag.hen{background:#FDF0DA;color:var(--amber-dark);}
-
-  .field-label{font-size:11.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);margin-bottom:6px;display:block;font-weight:700;}
-  select,input[type=text],input[type=number],textarea{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);font-family:'Inter';font-size:14px;background:#fff;}
-  textarea{resize:vertical;min-height:64px;}
-
-  .btn-primary{background:var(--navy);color:var(--paper);border:none;padding:9px 16px;border-radius:999px;font-weight:700;font-size:13px;cursor:pointer;text-transform:uppercase;}
-  .btn-primary:hover{background:var(--navy2);}
-  .btn-amber{background:var(--amber);color:var(--navy);}
-  .btn-amber:hover{background:var(--amber-dark);color:#fff;}
-  .btn-outline{background:transparent;border:1.5px solid var(--navy);color:var(--navy);padding:7px 14px;border-radius:999px;font-weight:700;font-size:12px;cursor:pointer;}
-  .btn-sm-danger{background:var(--red-bg);color:var(--red);border:1px solid var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;}
-  .btn-sm-edit{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;margin-right:4px;}
-  .btn-text{background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;text-decoration:underline;padding:0;}
-
-  .progress-bar{height:8px;background:var(--line);border-radius:999px;overflow:hidden;}
-  .progress-fill{height:100%;background:var(--green);transition:width 0.3s ease;}
-
-  .manifest{display:flex;flex-direction:column;gap:14px;}
-  .ticket{position:relative;background:#fff;border-radius:12px;display:flex;box-shadow:0 6px 16px -8px rgba(0,0,0,0.15);overflow:hidden;border:1px solid var(--line);}
-  .ticket-main{flex:1;padding:16px;}
-  .ticket-stub{width:78px;flex-shrink:0;background:var(--navy);color:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Oswald';font-size:11px;text-align:center;padding:6px;position:relative;}
-  .ticket-stub .num{font-size:20px;font-weight:700;}
-  .perforation{position:absolute;left:78px;top:0;bottom:0;width:0;border-left:2px dashed rgba(255,255,255,0.4);}
-  .ticket.visited .ticket-stub{background:var(--green);}
-  .t-name{font-weight:700;font-size:15px;color:var(--ink);display:flex;align-items:center;flex-wrap:wrap;gap:4px;}
-  .t-addr{font-size:12.5px;color:var(--muted);margin-top:2px;}
-  .t-meta{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);}
-  .t-actions{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-  .stamp{position:absolute;top:14px;right:16px;border:2.5px solid var(--green);color:var(--green);font-family:'Oswald';font-weight:700;font-size:11px;text-transform:uppercase;padding:4px 10px;border-radius:6px;transform:rotate(-8deg);opacity:0.85;}
-
-  .detail-panel{background:var(--paper2);border-radius:10px;padding:14px;margin-top:12px;display:flex;flex-direction:column;gap:12px;}
-  .qty-list{display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px;}
-  .qty-row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-bottom:1px solid var(--paper2);}
-  .qty-row .pinfo{flex:1;display:flex;flex-direction:column;}
-  .qty-row .pname{font-size:13px;font-weight:600;}
-  .qty-row .psku{font-size:11px;color:var(--muted);font-family:'Space Mono';}
-  .qty-row .pprice{font-size:11.5px;color:var(--muted);width:78px;text-align:right;font-family:'Space Mono';}
-  .qty-row input[type=number]{width:60px;padding:6px 8px;border-radius:6px;border:1px solid var(--line);font-family:'Space Mono';font-size:13px;}
-  .order-total{font-family:'Oswald';font-size:17px;color:var(--navy);}
-
-  .attend-box{background:var(--navy);color:var(--paper);border-radius:16px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
-  .attend-box .a-label{font-size:11px;text-transform:uppercase;color:#A9B3C9;}
-  .attend-box .a-time{font-family:'Space Mono';font-size:20px;margin-top:2px;}
-  .attend-box .a-status{font-size:12px;margin-top:4px;color:#A9B3C9;}
-
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  @media(max-width:600px){ .grid-2{grid-template-columns:1fr;} }
-
-  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
-  .card h3{margin:0 0 10px;font-size:15px;color:var(--navy);}
-
-  .empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
-  .empty-state .big{font-size:36px;margin-bottom:8px;}
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:var(--paper);padding:12px 20px;border-radius:10px;font-size:13.5px;box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:999;opacity:0;pointer-events:none;transition:all 0.25s;}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
-
-  .data-table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line);}
-  .data-table th{background:var(--navy);color:var(--paper);font-family:'Oswald';font-size:10.5px;text-transform:uppercase;text-align:left;padding:10px 12px;}
-  .data-table td{padding:10px 12px;font-size:13px;border-top:1px solid var(--paper2);}
-  .footer-note{text-align:center;color:#7C88A5;font-size:11.5px;margin-top:16px;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý Sales Thị Trường (DMS)</title>
+    <!-- Tailwind CSS (Giao diện) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS & JS (Bản đồ) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- HTML5-QRCode (Quét mã) -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body>
-<div class="app" id="app"></div>
-<div class="toast" id="toast"></div>
+<body class="bg-gray-100 font-sans pb-20">
 
-<script>
-const KEYS = { employees:'stt:employees', stores:'stt:stores', routes:'stt:routes', checkins:'stt:checkins', attendance:'stt:attendance', products:'stt:products', orders:'stt:orders' };
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 sticky top-0 z-50 shadow-md flex justify-between items-center">
+        <h1 class="font-bold text-lg">Sales Field App</h1>
+        <span id="status-badge" class="text-xs bg-green-500 px-2 py-1 rounded-full">Online</span>
+    </header>
 
-const SEED_EMPLOYEES = [
-  {id:'nv1', name:'Nguyễn Văn An', role:'Sales ngoài thị trường', phone:'0901 234 567'},
-  {id:'nv2', name:'Trần Thị Bình', role:'Sales ngoài thị trường', phone:'0902 345 678'},
-  {id:'nv3', name:'Lê Minh Cường', role:'Sales ngoài thị trường', phone:'0903 456 789'},
-];
-
-const SEED_STORES = [
-  {id:'s1', code:'KH001', name:'Tạp hóa Cô Ba', address:'12 Phú Riềng Đỏ, Đồng Xoài', lat:11.5350, lng:106.8980, category:'vip'},
-  {id:'s2', code:'KH002', name:'Siêu thị mini Hồng Phát', address:'45 Trần Hưng Đạo, Đồng Xoài', lat:11.5390, lng:106.9025, category:'vip'},
-  {id:'s3', code:'KH003', name:'Cửa hàng Anh Tuấn', address:'8 Nguyễn Huệ, Đồng Xoài', lat:11.5310, lng:106.8950, category:'normal'},
-  {id:'s4', code:'KH004', name:'Tạp hóa Thanh Thảo', address:'21 Lê Duẩn, Đồng Xoài', lat:11.5420, lng:106.9060, category:'potential'},
-  {id:'s5', code:'KH005', name:'Cửa hàng Bách Hóa Xanh 2', address:'88 ĐT741, Đồng Xoài', lat:11.5280, lng:106.8890, category:'vip'},
-  {id:'s6', code:'KH006', name:'Tạp hóa Hùng Thịnh', address:'102 Trương Công Định, Đồng Xoài', lat:11.5375, lng:106.9110, category:'normal'},
-];
-
-const SEED_PRODUCTS = [
-  {id:'p1', sku:'SP-NG330', name:'Nước ngọt lon 330ml (thùng 24)', price:180000},
-  {id:'p2', sku:'SP-MG30', name:'Mì gói thùng 30 gói', price:120000},
-  {id:'p3', sku:'SP-BQ10', name:'Bánh quy hộp', price:45000},
-  {id:'p4', sku:'SP-NS500', name:'Nước suối 500ml (thùng 24)', price:90000},
-  {id:'p5', sku:'SP-SNK1', name:'Snack khoai tây gói lớn', price:15000},
-];
-
-const SEED_ROUTES = {
-  nv1: ['s1', 's2', 's3', 's4'],
-  nv2: ['s5', 's6'],
-  nv3: []
-};
-
-function getStored(key, seedData) {
-  try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : seedData; } catch(e) { return seedData; }
-}
-function saveStored(key, data) {
-  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e){}
-}
-
-function haversine(lat1,lon1,lat2,lon2){
-  const R=6371000; const toRad=d=>d*Math.PI/180;
-  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
-  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-function fmtTime(ts){ return new Date(ts).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}); }
-function fmtDate(ts){ return new Date(ts).toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}); }
-function fmtVND(n){ return (Number(n)||0).toLocaleString('vi-VN') + 'đ'; }
-function todayKey(){ return new Date().toISOString().slice(0,10); }
-function initials(name){ return name.split(' ').slice(-2).map(w=>w[0]).join('').toUpperCase(); }
-function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function catLabel(cat){ return cat==='vip'?'VIP':cat==='potential'?'Tiềm năng':'Thường'; }
-function outcomeLabel(o){ return {mua:'Đã mua hàng', khong:'Không mua', dong:'Quầy đóng cửa', hen:'Hẹn quay lại'}[o] || ''; }
-function outcomeClass(o){ return {mua:'mua', khong:'khong', dong:'dong', hen:'hen'}[o] || ''; }
-
-function showToast(msg){
-  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2600);
-}
-function getPosition(){
-  return new Promise((resolve,reject)=>{
-    if(!navigator.geolocation){ reject(new Error('no-geo')); return; }
-    navigator.geolocation.getCurrentPosition(
-      pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude}),
-      err=>reject(err), {enableHighAccuracy:true, timeout:10000}
-    );
-  });
-}
-
-let STATE = {
-  screen:'login',
-  currentEmployee:null,
-  managerTab:'dashboard',
-  employees: getStored(KEYS.employees, SEED_EMPLOYEES),
-  stores: getStored(KEYS.stores, SEED_STORES),
-  routes: getStored(KEYS.routes, SEED_ROUTES),
-  checkins: getStored(KEYS.checkins, []),
-  attendance: getStored(KEYS.attendance, []),
-  products: getStored(KEYS.products, SEED_PRODUCTS),
-  orders: getStored(KEYS.orders, []),
-  detailStoreId:null,
-  detailDraft:{outcome:'', note:'', qty:{}},
-  storeFilter:'',
-  productFilter:'',
-};
-
-function todaysCheckins(empId){
-  return STATE.checkins.filter(c=>c.empId===empId && c.time.slice(0,10)===todayKey());
-}
-function todaysAttendance(empId){
-  return STATE.attendance.filter(a=>a.empId===empId && a.time.slice(0,10)===todayKey());
-}
-function empRouteStores(empId){
-  const ids = STATE.routes[empId] || [];
-  return ids.map(id=>STATE.stores.find(s=>s.id===id)).filter(Boolean);
-}
-
-function exportToCSV() {
-  let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-  csvContent += "Thoi Gian,Nhan Vien,Ma KH,Ten Quay,Ket Qua,Tong Don Hang (VND)\n";
-  STATE.checkins.forEach(c => {
-    const emp = STATE.employees.find(e=>e.id===c.empId)?.name || '';
-    const store = STATE.stores.find(s=>s.id===c.storeId);
-    const order = STATE.orders.find(o=>o.empId===c.empId && o.storeId===c.storeId && o.time.slice(0,10)===c.time.slice(0,10));
-    csvContent += `"${c.time}","${emp}","${store?.code||''}","${store?.name||''}","${outcomeLabel(c.outcome)}","${order?.total||0}"\n`;
-  });
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `bao_cao_tuyen_${todayKey()}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function render(){
-  const app = document.getElementById('app');
-  app.innerHTML = topbarHtml() + '<div class="panel">' + bodyHtml() + '</div>' + footerHtml();
-  bindEvents();
-}
-
-function topbarHtml(){
-  let who = '';
-  if(STATE.screen==='employee' && STATE.currentEmployee){
-    who = `<div class="who"><span>${esc(STATE.currentEmployee.name)}</span><button class="btn-ghost" data-action="logout">Đăng xuất</button></div>`;
-  } else if(STATE.screen==='manager'){
-    who = `<div class="who"><span>Quản lý tuyến</span><button class="btn-ghost" data-action="logout">Đăng xuất</button></div>`;
-  }
-  return `
-  <div class="topbar">
-    <div class="brand">
-      <div class="brand-mark">TT</div>
-      <div class="brand-text">
-        <div class="t1">Tuyến Thị Trường</div>
-        <div class="t2">Quản lý sales ngoài thị trường</div>
-      </div>
-    </div>
-    ${who}
-  </div>`;
-}
-
-function footerHtml(){
-  return `<div class="footer-note">Dữ liệu tự động lưu trữ trên Trình duyệt (LocalStorage).</div>`;
-}
-
-function bodyHtml(){
-  if(STATE.screen==='login') return loginHtml();
-  if(STATE.screen==='employee') return employeeHtml();
-  if(STATE.screen==='manager') return managerHtml();
-  return '';
-}
-
-function loginHtml(){
-  return `
-  <div class="login-wrap">
-    <h2>Đăng nhập Hệ Thống</h2>
-    <div class="login-sub">Chọn vai trò làm việc để bắt đầu thao tác</div>
-    <div class="role-grid">
-      <div class="role-card" data-action="pick-role" data-role="employee">
-        <div class="icon">🧭</div>
-        <div class="rt">Nhân viên Sales</div>
-        <div class="rd">Xem tuyến, ghé quầy có GPS, ghi kết quả & đặt hàng</div>
-      </div>
-      <div class="role-card" data-action="pick-role" data-role="manager">
-        <div class="icon">📋</div>
-        <div class="rt">Quản lý tuyến</div>
-        <div class="rd">Phân tuyến, chỉnh sửa Mã KH/SKU, xuất báo cáo</div>
-      </div>
-    </div>
-    <div id="loginSub"></div>
-  </div>`;
-}
-
-function employeePickHtml(){
-  return `
-    <div class="emp-list">
-      ${STATE.employees.map(e=>`
-        <div class="emp-row" data-action="login-employee" data-id="${e.id}">
-          <div class="avatar">${initials(e.name)}</div>
-          <div>
-            <div class="en">${esc(e.name)}</div>
-            <div class="er">${esc(e.role)} — ${esc(e.phone)}</div>
-          </div>
-        </div>`).join('')}
-    </div>
-    <div class="back-link" data-action="back-role">← Quay lại chọn vai trò</div>
-  `;
-}
-
-function employeeHtml(){
-  const emp = STATE.currentEmployee;
-  const stores = empRouteStores(emp.id);
-  const checkins = todaysCheckins(emp.id);
-  const visitedIds = new Set(checkins.map(c=>c.storeId));
-  const attend = todaysAttendance(emp.id);
-  const lastAttend = attend[attend.length-1];
-  const isShiftOn = lastAttend && lastAttend.type==='in';
-
-  return `
-    <div class="section-head">
-      <div>
-        <h2>Xin chào, ${esc(emp.name)}</h2>
-        <div class="sub">${fmtDate(Date.now())}</div>
-      </div>
-    </div>
-
-    <div class="attend-box">
-      <div>
-        <div class="a-label">Trạng thái ca làm việc</div>
-        <div class="a-time">${isShiftOn ? 'Đang trong ca' : 'Chưa vào ca'}</div>
-        <div class="a-status">${lastAttend ? (lastAttend.type==='in'?'Vào ca lúc '+fmtTime(lastAttend.time):'Tan ca lúc '+fmtTime(lastAttend.time)) : 'Chưa điểm danh hôm nay'}</div>
-      </div>
-      <button class="btn-primary ${isShiftOn?'':'btn-amber'}" data-action="toggle-shift">
-        ${isShiftOn ? 'Tan ca làm' : 'Vào ca làm'}
-      </button>
-    </div>
-
-    <div class="section-head">
-      <div>
-        <h2 style="font-size:16px;">Tuyến quầy hôm nay</h2>
-        <div class="sub">${visitedIds.size}/${stores.length} quầy đã hoàn thành</div>
-      </div>
-    </div>
-    ${stores.length ? `
-      <div class="progress-bar" style="margin-bottom:16px;">
-        <div class="progress-fill" style="width:${stores.length? (visitedIds.size/stores.length*100):0}%"></div>
-      </div>` : ''}
-
-    <div class="manifest">
-      ${stores.length===0 ? emptyState('🗺️','Chưa có tuyến được phân','Vui lòng liên hệ quản lý để phân tuyến cho tài khoản này.') :
-        stores.map((s,i)=>{
-          const c = checkins.find(c=>c.storeId===s.id);
-          const isOpen = STATE.detailStoreId===s.id;
-          const visitOrders = STATE.orders.filter(o=>o.empId===emp.id && o.storeId===s.id && o.time.slice(0,10)===todayKey());
-          const orderTotal = visitOrders.reduce((sum,o)=>sum+o.total,0);
-          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
-
-          return `
-          <div class="ticket ${c?'visited':''}">
-            <div class="ticket-stub"><span class="num">${String(i+1).padStart(2,'0')}</span><span>QUẦY</span></div>
-            <div class="perforation"></div>
-            <div class="ticket-main">
-              ${c?`<div class="stamp">Đã ghé</div>`:''}
-              <div class="t-name">
-                <span class="code-badge">${esc(s.code||'KH---')}</span>
-                ${esc(s.name)} 
-                <span class="cat-chip ${s.category||'normal'}" style="margin-left:6px;">${catLabel(s.category)}</span>
-              </div>
-              <div class="t-addr">📍 ${esc(s.address)}</div>
-              <div class="t-meta">
-                ${c ? `<span>🕒 Ghé lúc: ${fmtTime(c.time)}</span><span>📍 Khoảng cách GPS: ${Math.round(c.distance)}m</span>${orderTotal? `<span>💰 Đơn: ${fmtVND(orderTotal)}</span>`:''}` : `<span>Trạng thái: Chưa ghé</span>`}
-              </div>
-              ${c && c.outcome ? `<div class="outcome-tag ${outcomeClass(c.outcome)}">${outcomeLabel(c.outcome)}</div>` : ''}
-              ${c && c.note ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;">📝 ${esc(c.note)}</div>` : ''}
-              <div class="t-actions">
-                ${!c ? `<button class="btn-amber btn-primary" data-action="checkin" data-store="${s.id}">Ghé quầy (GPS)</button>` : 
-                       `<button class="btn-outline" data-action="toggle-detail" data-store="${s.id}">${isOpen? 'Đóng' : 'Sửa kết quả / Đặt hàng'}</button>`}
-                <a href="${mapsUrl}" target="_blank" rel="noopener" class="btn-outline" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🗺️ Chỉ đường</a>
-              </div>
-              ${isOpen ? detailPanelHtml(s, emp) : ''}
-            </div>
-          </div>`;
-        }).join('')
-      }
-    </div>
-  `;
-}
-
-function detailPanelHtml(store, emp){
-  const d = STATE.detailDraft;
-  const total = STATE.products.reduce((sum,p)=> sum + (Number(d.qty[p.id])||0)*p.price, 0);
-  return `
-    <div class="detail-panel">
-      <div>
-        <div class="field-label">Ghi nhận kết quả cuộc ghé</div>
-        <select data-action="detail-outcome">
-          <option value="" ${!d.outcome?'selected':''}>— Chọn kết quả —</option>
-          <option value="mua" ${d.outcome==='mua'?'selected':''}>Đã mua hàng</option>
-          <option value="khong" ${d.outcome==='khong'?'selected':''}>Không mua</option>
-          <option value="dong" ${d.outcome==='dong'?'selected':''}>Quầy đóng cửa</option>
-          <option value="hen" ${d.outcome==='hen'?'selected':''}>Hẹn quay lại sau</option>
-        </select>
-      </div>
-      <div>
-        <div class="field-label">Ghi chú phản hồi của chủ quầy</div>
-        <textarea id="detail-note" placeholder="Nhập chi tiết ý kiến khách hàng...">${esc(d.note)}</textarea>
-      </div>
-      <div>
-        <div class="field-label">Lên đơn hàng trực tiếp (nếu có)</div>
-        <div class="qty-list">
-          ${STATE.products.map(p=>`
-            <div class="qty-row">
-              <div class="pinfo">
-                <span class="pname">${esc(p.name)}</span>
-                <span class="psku">SKU: ${esc(p.sku||'SP---')}</span>
-              </div>
-              <span class="pprice">${fmtVND(p.price)}</span>
-              <input type="number" min="0" data-pid="${p.id}" class="order-qty-input" value="${d.qty[p.id]||''}" placeholder="0">
-            </div>`).join('')}
+    <main class="p-4 max-w-md mx-auto space-y-4">
+        
+        <!-- Tab Navigation -->
+        <div class="flex border-b border-gray-300 bg-white rounded-t shadow-sm">
+            <button onclick="switchTab('checkin')" class="flex-1 py-2 text-center font-semibold text-blue-600 border-b-2 border-blue-600" id="tab-btn-checkin">Check-in</button>
+            <button onclick="switchTab('order')" class="flex-1 py-2 text-center font-semibold text-gray-500" id="tab-btn-order">Lên Đơn</button>
+            <button onclick="switchTab('map')" class="flex-1 py-2 text-center font-semibold text-gray-500" id="tab-btn-map">Bản Đồ</button>
         </div>
-        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
-          <span class="field-label" style="margin:0;">Giá trị đơn hàng:</span>
-          <span class="order-total" id="order-total-live">${fmtVND(total)}</span>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:6px;">
-        <button class="btn-primary" data-action="save-detail" data-store="${store.id}" data-emp="${emp.id}">Lưu báo cáo & Đơn hàng</button>
-        <button class="btn-text" data-action="toggle-detail" data-store="${store.id}">Đóng</button>
-      </div>
-    </div>
-  `;
-}
 
-function managerHtml(){
-  const tabs = [
-    {id:'dashboard', label:'Bảng điều khiển'},
-    {id:'routes', label:'Chia tuyến Sales'},
-    {id:'stores', label:'Danh sách Quầy (Mã KH)'},
-    {id:'products', label:'Danh mục SP (Mã SKU)'},
-  ];
-  return `
-    <div class="tabs">
-      ${tabs.map(t=>`<div class="tab ${STATE.managerTab===t.id?'active':''}" data-action="mtab" data-tab="${t.id}">${t.label}</div>`).join('')}
-    </div>
-    ${STATE.managerTab==='dashboard'? dashboardHtml() : ''}
-    ${STATE.managerTab==='routes'? managerRoutesHtml() : ''}
-    ${STATE.managerTab==='stores'? managerStoresHtml() : ''}
-    ${STATE.managerTab==='products'? managerProductsHtml() : ''}
-  `;
-}
+        <!-- TAB 1: CHECK-IN & CHỤP ẢNH -->
+        <section id="tab-checkin" class="bg-white p-4 rounded-b shadow space-y-4">
+            <h2 class="font-bold text-gray-700">1. Check-in Điểm Bán</h2>
+            
+            <button onclick="startScanner()" class="w-full bg-purple-600 text-white py-2 rounded font-medium hover:bg-purple-700">
+                📷 Quét mã QR Quầy
+            </button>
+            <div id="reader" class="hidden w-full rounded overflow-hidden"></div>
 
-function dashboardHtml(){
-  const totalEmp = STATE.employees.length;
-  let totalVisited=0, onShift=0;
-  STATE.employees.forEach(e=>{
-    totalVisited += todaysCheckins(e.id).length;
-    const att = todaysAttendance(e.id);
-    const last = att[att.length-1];
-    if(last && last.type==='in') onShift++;
-  });
-  const todayOrders = STATE.orders.filter(o=>o.time.slice(0,10)===todayKey());
-  const totalRevenue = todayOrders.reduce((s,o)=>s+o.total,0);
-
-  return `
-    <div class="section-head">
-      <div><h2>Tổng quan hoạt động hôm nay</h2><div class="sub">${fmtDate(Date.now())}</div></div>
-      <button class="btn-outline" data-action="export-csv">📥 Xuất Báo Cáo CSV</button>
-    </div>
-    <div class="kpis">
-      <div class="kpi"><div class="v">${totalEmp}</div><div class="l">Nhân viên</div></div>
-      <div class="kpi amber"><div class="v">${onShift}</div><div class="l">Đang làm việc</div></div>
-      <div class="kpi green"><div class="v">${totalVisited}</div><div class="l">Lượt ghé quầy</div></div>
-      <div class="kpi green"><div class="v">${fmtVND(totalRevenue)}</div><div class="l">Tổng doanh số</div></div>
-    </div>
-
-    <div class="card">
-      <h3>Báo cáo tiến độ Nhân viên</h3>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Nhân viên</th>
-            <th>Trạng thái ca</th>
-            <th>Tiến độ tuyến</th>
-            <th>Đơn hàng</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${STATE.employees.map(e=>{
-            const route = empRouteStores(e.id);
-            const checkins = todaysCheckins(e.id);
-            const att = todaysAttendance(e.id);
-            const lastAtt = att[att.length-1];
-            const empOrders = todayOrders.filter(o=>o.empId===e.id);
-            const empTotal = empOrders.reduce((s,o)=>s+o.total,0);
-
-            return `
-              <tr>
-                <td><strong>${esc(e.name)}</strong><br><span style="font-size:11px;color:var(--muted);">${esc(e.phone)}</span></td>
-                <td>${lastAtt && lastAtt.type==='in' ? '<span style="color:var(--green);font-weight:700;">Đang làm</span>' : '<span style="color:var(--muted);">Nghỉ ca</span>'}</td>
-                <td>${checkins.length} / ${route.length} quầy</td>
-                <td><strong>${fmtVND(empTotal)}</strong> (${empOrders.length} đơn)</td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-function managerRoutesHtml(){
-  return `
-    <div class="section-head">
-      <div><h2>Phân tuyến cho Nhân viên</h2><div class="sub">Gán danh sách các quầy khách hàng cho từng Sales</div></div>
-    </div>
-    <div class="grid-2">
-      ${STATE.employees.map(emp=>{
-        const assignedIds = STATE.routes[emp.id] || [];
-        return `
-          <div class="card">
-            <h3>👤 ${esc(emp.name)}</h3>
-            <div class="field-label">Chọn quầy thuộc tuyến:</div>
-            <div style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;border:1px solid var(--line);padding:8px;border-radius:8px;background:#fff;">
-              ${STATE.stores.map(s=>`
-                <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-                  <input type="checkbox" data-action="route-toggle" data-emp="${emp.id}" data-store="${s.id}" ${assignedIds.includes(s.id)?'checked':''}>
-                  <span class="code-badge">${esc(s.code||'KH---')}</span>
-                  <span>${esc(s.name)}</span>
-                </label>
-              `).join('')}
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Tên Tạp Hóa / Quầy:</label>
+                <input type="text" id="store-name" placeholder="Ví dụ: Tạp hóa Tấn Phát" class="w-full border p-2 rounded mt-1">
             </div>
-            <div style="font-size:12px;color:var(--muted);margin-top:8px;">Đã gán: <strong>${assignedIds.length}</strong> quầy</div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-}
 
-function managerStoresHtml(){
-  const filtered = STATE.stores.filter(s=> 
-    (s.name + s.code + s.address).toLowerCase().includes((STATE.storeFilter||'').toLowerCase())
-  );
+            <button onclick="getGPS()" class="w-full bg-blue-500 text-white py-2 rounded font-medium hover:bg-blue-600">
+                📍 Lấy Vị Trí GPS
+            </button>
+            <p id="gps-info" class="text-xs text-gray-500 italic">Tọa độ: Chưa xác định</p>
 
-  return `
-    <div class="section-head">
-      <div><h2>Danh sách Quầy / Mã Khách Hàng</h2><div class="sub">Quản lý toàn bộ danh sách điểm bán và tọa độ GPS</div></div>
-      <button class="btn-primary" data-action="add-store-prompt">+ Thêm Quầy Mới</button>
-    </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Chụp ảnh trưng bày (Photo Proof):</label>
+                <input type="file" id="camera-input" accept="image/*" capture="camera" onchange="previewImage(event)" class="mt-1 block w-full text-sm text-gray-500">
+                <img id="photo-preview" class="hidden mt-2 w-full h-40 object-cover rounded border">
+            </div>
 
-    <div style="display:flex;gap:10px;margin-bottom:14px;">
-      <input type="text" id="searchStore" placeholder="🔍 Tìm theo Mã KH, tên quầy, địa chỉ..." value="${esc(STATE.storeFilter)}">
-    </div>
+            <button onclick="saveCheckin()" class="w-full bg-green-600 text-white py-3 rounded font-bold hover:bg-green-700">
+                LƯU CHECK-IN
+            </button>
+        </section>
 
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Mã KH</th>
-          <th>Tên Quầy / Khách hàng</th>
-          <th>Địa chỉ</th>
-          <th>Phân loại</th>
-          <th>Tọa độ GPS</th>
-          <th style="text-align:right;">Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${filtered.map(s=>`
-          <tr>
-            <td><span class="code-badge">${esc(s.code||'KH---')}</span></td>
-            <td><strong>${esc(s.name)}</strong></td>
-            <td>${esc(s.address)}</td>
-            <td><span class="cat-chip ${s.category||'normal'}">${catLabel(s.category)}</span></td>
-            <td class="mono" style="font-size:11px;">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</td>
-            <td style="text-align:right;">
-              <button class="btn-sm-edit" data-action="edit-store" data-id="${s.id}">Sửa</button>
-              <button class="btn-sm-danger" data-action="delete-store" data-id="${s.id}">Xóa</button>
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
-}
+        <!-- TAB 2: LÊN ĐƠN HÀNG & KHUYẾN MÃI -->
+        <section id="tab-order" class="hidden bg-white p-4 rounded-b shadow space-y-4">
+            <h2 class="font-bold text-gray-700">2. Tạo Đơn Hàng</h2>
+            
+            <div class="space-y-2">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <div>
+                        <p class="font-semibold">Nước Ngọt Coca (Thùng)</p>
+                        <p class="text-xs text-gray-500">200,000đ</p>
+                    </div>
+                    <input type="number" id="qty-coca" value="0" min="0" onchange="calculateTotal()" class="w-16 border text-center p-1 rounded">
+                </div>
+                <div class="flex justify-between items-center border-b pb-2">
+                    <div>
+                        <p class="font-semibold">Bánh Snack (Thùng)</p>
+                        <p class="text-xs text-gray-500">150,000đ</p>
+                    </div>
+                    <input type="number" id="qty-snack" value="0" min="0" onchange="calculateTotal()" class="w-16 border text-center p-1 rounded">
+                </div>
+            </div>
 
-function managerProductsHtml(){
-  const filtered = STATE.products.filter(p=> 
-    (p.name + p.sku).toLowerCase().includes((STATE.productFilter||'').toLowerCase())
-  );
+            <!-- Promotion Box -->
+            <div id="promo-box" class="bg-yellow-50 border-l-4 border-yellow-400 p-2 text-xs text-yellow-700 hidden">
+                🎉 <b>Ưu đãi:</b> Giảm 5% cho đơn hàng trên 1.000.000đ!
+            </div>
 
-  return `
-    <div class="section-head">
-      <div><h2>Danh mục Sản phẩm / SKU</h2><div class="sub">Quản lý danh sách hàng hóa và đơn giá bán</div></div>
-      <button class="btn-primary" data-action="add-product-prompt">+ Thêm SP Mới</button>
-    </div>
+            <div class="border-t pt-2 space-y-1">
+                <p class="flex justify-between text-sm"><span>Tổng tiền:</span> <span id="subtotal-val">0 đ</span></p>
+                <p class="flex justify-between text-sm text-green-600"><span>Chiết khấu:</span> <span id="discount-val">-0 đ</span></p>
+                <p class="flex justify-between font-bold text-base text-red-600"><span>Thanh toán:</span> <span id="total-val">0 đ</span></p>
+            </div>
 
-    <div style="display:flex;gap:10px;margin-bottom:14px;">
-      <input type="text" id="searchProduct" placeholder="🔍 Tìm theo Mã SKU, tên sản phẩm..." value="${esc(STATE.productFilter)}">
-    </div>
+            <button onclick="printInvoice()" class="w-full bg-orange-500 text-white py-2 rounded font-bold hover:bg-orange-600">
+                🖨️ In Hóa Đơn Xem Trước
+            </button>
+        </section>
 
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Mã SKU</th>
-          <th>Tên Mặt Hàng / Sản phẩm</th>
-          <th>Đơn Giá Bán</th>
-          <th style="text-align:right;">Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${filtered.map(p=>`
-          <tr>
-            <td><span class="code-badge">${esc(p.sku||'SP---')}</span></td>
-            <td><strong>${esc(p.name)}</strong></td>
-            <td class="mono" style="font-weight:700;color:var(--navy);">${fmtVND(p.price)}</td>
-            <td style="text-align:right;">
-              <button class="btn-sm-edit" data-action="edit-product" data-id="${p.id}">Sửa</button>
-              <button class="btn-sm-danger" data-action="delete-product" data-id="${p.id}">Xóa</button>
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
-}
+        <!-- TAB 3: BẢN ĐỒ LỘ TRÌNH -->
+        <section id="tab-map" class="hidden bg-white p-4 rounded-b shadow space-y-2">
+            <h2 class="font-bold text-gray-700">3. Bản Đồ Tuyến Đường</h2>
+            <div id="map" class="w-full h-80 rounded border"></div>
+        </section>
 
-function emptyState(icon,title,sub){
-  return `<div class="empty-state"><div class="big">${icon}</div><div style="font-weight:700;color:var(--navy);">${title}</div><div style="font-size:13px;margin-top:4px;">${sub}</div></div>`;
-}
+    </main>
 
-function bindEvents(){
-  document.onclick = async (e)=>{
-    const btn = e.target.closest('[data-action]');
-    if(!btn) return;
-    const action = btn.dataset.action;
+    <!-- JS Handling Logic -->
+    <script>
+        let currentCoords = null;
+        let photoBase64 = null;
+        let map = null;
 
-    if(action==='pick-role'){
-      const role = btn.dataset.role;
-      if(role==='manager'){ STATE.screen='manager'; render(); }
-      else { document.getElementById('loginSub').innerHTML = employeePickHtml(); }
-    }
-    if(action==='back-role'){ document.getElementById('loginSub').innerHTML = ''; }
-    if(action==='login-employee'){
-      STATE.currentEmployee = STATE.employees.find(e=>e.id===btn.dataset.id);
-      STATE.screen = 'employee';
-      render();
-    }
-    if(action==='logout'){ STATE.screen='login'; STATE.currentEmployee=null; render(); }
-    if(action==='mtab'){ STATE.managerTab = btn.dataset.tab; render(); }
-    if(action==='export-csv'){ exportToCSV(); }
+        // 1. Switch Tabs
+        function switchTab(tabName) {
+            ['checkin', 'order', 'map'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${t}`).className = "flex-1 py-2 text-center font-semibold text-gray-500";
+            });
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tabName}`).className = "flex-1 py-2 text-center font-semibold text-blue-600 border-b-2 border-blue-600";
 
-    if(action==='toggle-shift'){
-      const emp = STATE.currentEmployee;
-      const att = todaysAttendance(emp.id);
-      const last = att[att.length-1];
-      const nextType = (last && last.type==='in') ? 'out' : 'in';
-      STATE.attendance.push({ id:'att_'+Date.now(), empId:emp.id, time:new Date().toISOString(), type:nextType });
-      saveStored(KEYS.attendance, STATE.attendance);
-      showToast(nextType==='in' ? 'Vào ca thành công!' : 'Tan ca thành công!');
-      render();
-    }
+            if(tabName === 'map' && !map) initMap();
+        }
 
-    if(action==='checkin'){
-      const storeId = btn.dataset.store;
-      const store = STATE.stores.find(s=>s.id===storeId);
-      showToast('Đang định vị GPS...');
-      try {
-        const pos = await getPosition();
-        const dist = haversine(pos.lat, pos.lng, store.lat, store.lng);
-        STATE.checkins.push({
-          id:'ck_'+Date.now(), empId:STATE.currentEmployee.id, storeId,
-          time:new Date().toISOString(), distance:dist, lat:pos.lat, lng:pos.lng
-        });
-        saveStored(KEYS.checkins, STATE.checkins);
-        showToast(`Ghé quầy thành công (Khoảng cách ${Math.round(dist)}m)`);
-        render();
-      } catch(err){
-        showToast('Không lấy được GPS. Hệ thống ghi nhận vị trí định danh.');
-        STATE.checkins.push({
-          id:'ck_'+Date.now(), empId:STATE.currentEmployee.id, storeId,
-          time:new Date().toISOString(), distance:0, lat:store.lat, lng:store.lng
-        });
-        saveStored(KEYS.checkins, STATE.checkins);
-        render();
-      }
-    }
+        // 2. GPS Location
+        function getGPS() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    document.getElementById('gps-info').innerText = `Tọa độ: ${currentCoords.lat.toFixed(5)}, ${currentCoords.lng.toFixed(5)}`;
+                }, () => alert("Không thể lấy vị trí. Hãy bật GPS!"));
+            }
+        }
 
-    if(action==='toggle-detail'){
-      const sid = btn.dataset.store;
-      if(STATE.detailStoreId===sid){ STATE.detailStoreId=null; }
-      else {
-        STATE.detailStoreId = sid;
-        const c = todaysCheckins(STATE.currentEmployee.id).find(c=>c.storeId===sid);
-        STATE.detailDraft = { outcome: c?.outcome||'', note: c?.note||'', qty:{} };
-      }
-      render();
-    }
+        // 3. Photo Proof Preview
+        function previewImage(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    photoBase64 = evt.target.result;
+                    const img = document.getElementById('photo-preview');
+                    img.src = photoBase64;
+                    img.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
 
-    if(action==='save-detail'){
-      const sid = btn.dataset.store;
-      const empId = btn.dataset.emp;
-      const c = todaysCheckins(empId).find(c=>c.storeId===sid);
-      if(c){
-        c.outcome = STATE.detailDraft.outcome || (Object.keys(STATE.detailDraft.qty).length ? 'mua' : '');
-        c.note = document.getElementById('detail-note')?.value || '';
-        saveStored(KEYS.checkins, STATE.checkins);
-      }
-      
-      const total = STATE.products.reduce((sum,p)=> sum + (Number(STATE.detailDraft.qty[p.id])||0)*p.price, 0);
-      if(total > 0){
-        STATE.orders.push({
-          id:'ord_'+Date.now(), empId, storeId:sid,
-          items:{...STATE.detailDraft.qty}, total, time:new Date().toISOString()
-        });
-        saveStored(KEYS.orders, STATE.orders);
-      }
+        // 4. QR Scanner
+        function startScanner() {
+            document.getElementById('reader').classList.remove('hidden');
+            const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+            html5QrcodeScanner.render((decodedText) => {
+                document.getElementById('store-name').value = decodedText;
+                html5QrcodeScanner.clear();
+                document.getElementById('reader').classList.add('hidden');
+            });
+        }
 
-      STATE.detailStoreId = null;
-      showToast('Đã lưu dữ liệu báo cáo & đơn hàng!');
-      render();
-    }
+        // 5. Calculate Order & Promo
+        function calculateTotal() {
+            const coca = parseInt(document.getElementById('qty-coca').value) || 0;
+            const snack = parseInt(document.getElementById('qty-snack').value) || 0;
+            let subtotal = (coca * 200000) + (snack * 150000);
+            let discount = 0;
 
-    // --- QUẢN LÝ QUẦY / MÃ KH ---
-    if(action==='add-store-prompt'){
-      const code = prompt('Nhập Mã KH mới (VD: KH007):', 'KH00' + (STATE.stores.length + 1));
-      if(!code) return;
-      const name = prompt('Nhập Tên quầy/Cửa hàng:');
-      if(!name) return;
-      const address = prompt('Nhập Địa chỉ:');
-      
-      const newStore = {
-        id: 's_' + Date.now(),
-        code: code.trim(),
-        name: name.trim(),
-        address: address ? address.trim() : 'Chưa cập nhật',
-        lat: 11.5350,
-        lng: 106.8980,
-        category: 'normal'
-      };
-      STATE.stores.push(newStore);
-      saveStored(KEYS.stores, STATE.stores);
-      showToast('Đã thêm quầy mới!');
-      render();
-    }
+            if (subtotal >= 1000000) {
+                discount = subtotal * 0.05;
+                document.getElementById('promo-box').classList.remove('hidden');
+            } else {
+                document.getElementById('promo-box').classList.add('hidden');
+            }
 
-    if(action==='edit-store'){
-      const id = btn.dataset.id;
-      const store = STATE.stores.find(s=>s.id===id);
-      if(!store) return;
-      
-      const code = prompt('Chỉnh sửa Mã KH:', store.code);
-      if(code===null) return;
-      const name = prompt('Chỉnh sửa Tên quầy:', store.name);
-      if(name===null) return;
-      const address = prompt('Chỉnh sửa Địa chỉ:', store.address);
-      if(address===null) return;
+            let total = subtotal - discount;
+            document.getElementById('subtotal-val').innerText = subtotal.toLocaleString() + ' đ';
+            document.getElementById('discount-val').innerText = '-' + discount.toLocaleString() + ' đ';
+            document.getElementById('total-val').innerText = total.toLocaleString() + ' đ';
+        }
 
-      store.code = code.trim();
-      store.name = name.trim();
-      store.address = address.trim();
-      saveStored(KEYS.stores, STATE.stores);
-      showToast('Đã cập nhật thông tin quầy!');
-      render();
-    }
+        // 6. Save Data (Offline Ready)
+        function saveCheckin() {
+            const store = document.getElementById('store-name').value;
+            if(!store) return alert("Vui lòng nhập tên quầy!");
 
-    if(action==='delete-store'){
-      const id = btn.dataset.id;
-      if(confirm('Bạn có chắc chắn muốn xóa quầy này khỏi hệ thống?')){
-        STATE.stores = STATE.stores.filter(s=>s.id!==id);
-        saveStored(KEYS.stores, STATE.stores);
-        showToast('Đã xóa quầy!');
-        render();
-      }
-    }
+            const checkinData = {
+                store: store,
+                coords: currentCoords,
+                photo: photoBase64,
+                time: new Date().toLocaleString()
+            };
 
-    // --- QUẢN LÝ SẢN PHẨM / SKU ---
-    if(action==='add-product-prompt'){
-      const sku = prompt('Nhập Mã SKU (VD: SP-NEW1):', 'SP-00' + (STATE.products.length + 1));
-      if(!sku) return;
-      const name = prompt('Nhập Tên sản phẩm:');
-      if(!name) return;
-      const price = prompt('Nhập Đơn giá (VNĐ):', '50000');
-      
-      const newProd = {
-        id: 'p_' + Date.now(),
-        sku: sku.trim(),
-        name: name.trim(),
-        price: Number(price) || 0
-      };
-      STATE.products.push(newProd);
-      saveStored(KEYS.products, STATE.products);
-      showToast('Đã thêm sản phẩm mới!');
-      render();
-    }
+            let history = JSON.parse(localStorage.getItem('sales_history') || '[]');
+            history.push(checkinData);
+            localStorage.setItem('sales_history', JSON.stringify(history));
 
-    if(action==='edit-product'){
-      const id = btn.dataset.id;
-      const prod = STATE.products.find(p=>p.id===id);
-      if(!prod) return;
+            alert("✅ Đã lưu Check-in thành công vào thiết bị!");
+        }
 
-      const sku = prompt('Chỉnh sửa Mã SKU:', prod.sku);
-      if(sku===null) return;
-      const name = prompt('Chỉnh sửa Tên sản phẩm:', prod.name);
-      if(name===null) return;
-      const price = prompt('Chỉnh sửa Đơn giá (VNĐ):', prod.price);
-      if(price===null) return;
+        // 7. Initialize Map (Leaflet)
+        function initMap() {
+            map = L.map('map').setView([10.7769, 106.7009], 13); // Mặc định TP.HCM
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-      prod.sku = sku.trim();
-      prod.name = name.trim();
-      prod.price = Number(price) || 0;
-      saveStored(KEYS.products, STATE.products);
-      showToast('Đã cập nhật sản phẩm!');
-      render();
-    }
+            // Đánh dấu vị trí giả định quầy
+            L.marker([10.7769, 106.7009]).addTo(map).bindPopup('Tạp hóa Tấn Phát').openPopup();
+            L.marker([10.7800, 106.6950]).addTo(map).bindPopup('Cửa hàng An Bình');
+        }
 
-    if(action==='delete-product'){
-      const id = btn.dataset.id;
-      if(confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')){
-        STATE.products = STATE.products.filter(p=>p.id!==id);
-        saveStored(KEYS.products, STATE.products);
-        showToast('Đã xóa sản phẩm!');
-        render();
-      }
-    }
-  };
-
-  document.onchange = (e)=>{
-    if(e.target.dataset.action==='detail-outcome'){
-      STATE.detailDraft.outcome = e.target.value;
-    }
-
-    if(e.target.dataset.action==='route-toggle'){
-      const empId = e.target.dataset.emp;
-      const storeId = e.target.dataset.store;
-      if(!STATE.routes[empId]) STATE.routes[empId] = [];
-      
-      if(e.target.checked){
-        if(!STATE.routes[empId].includes(storeId)) STATE.routes[empId].push(storeId);
-      } else {
-        STATE.routes[empId] = STATE.routes[empId].filter(id=>id!==storeId);
-      }
-      saveStored(KEYS.routes, STATE.routes);
-      showToast('Cập nhật tuyến thành công!');
-    }
-  };
-
-  document.oninput = (e)=>{
-    if(e.target.classList.contains('order-qty-input')){
-      const pid = e.target.dataset.pid;
-      STATE.detailDraft.qty[pid] = e.target.value;
-      const total = STATE.products.reduce((sum,p)=> sum + (Number(STATE.detailDraft.qty[p.id])||0)*p.price, 0);
-      const el = document.getElementById('order-total-live');
-      if(el) el.textContent = fmtVND(total);
-    }
-
-    if(e.target.id==='searchStore'){
-      STATE.storeFilter = e.target.value;
-      render();
-      const input = document.getElementById('searchStore');
-      if(input){ input.focus(); input.selectionStart = input.selectionEnd = input.value.length; }
-    }
-
-    if(e.target.id==='searchProduct'){
-      STATE.productFilter = e.target.value;
-      render();
-      const input = document.getElementById('searchProduct');
-      if(input){ input.focus(); input.selectionStart = input.selectionEnd = input.value.length; }
-    }
-  };
-}
-
-render();
-</script>
+        // 8. Print Invoice Preview
+        function printInvoice() {
+            window.print();
+        }
+    </script>
 </body>
 </html>
