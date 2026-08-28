@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tuyến Thị Trường — Quản lý Sales ngoài</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2312213D'/%3E%3Ctext x='50' y='66' font-size='46' text-anchor='middle' fill='%23FCA311' font-family='Arial' font-weight='bold'%3ETT%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#12213D;
+    --navy2:#1B2F52;
+    --amber:#FCA311;
+    --amber-dark:#D6870A;
+    --paper:#F6F1E6;
+    --paper2:#EFE7D6;
+    --ink:#1A1B1F;
+    --green:#2D6A4F;
+    --green-bg:#E4F0EA;
+    --red:#C1121F;
+    --red-bg:#FBE7E7;
+    --blue:#2A5C8A;
+    --blue-bg:#DCEBFB;
+    --line:#D9D0BC;
+    --muted:#6B6558;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--navy);
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  @keyframes fadeInUp{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes pulseDot{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+  .app{max-width:1180px;margin:0 auto;padding:20px;}
+  h1,h2,h3,.display{font-family:'Oswald',sans-serif; letter-spacing:0.02em; text-transform:uppercase;}
+  .mono{font-family:'Space Mono',monospace;}
+
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 4px 20px 4px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;color:var(--paper);}
+  .brand-mark{
+    width:38px;height:38px;border-radius:8px;
+    background:linear-gradient(135deg,var(--amber),var(--amber-dark));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Oswald';font-weight:700;color:var(--navy);font-size:18px;
+    flex-shrink:0;
+  }
+  .brand-text .t1{font-family:'Oswald';font-weight:600;font-size:18px;letter-spacing:0.04em;text-transform:uppercase;}
+  .brand-text .t2{font-size:11px;color:#A9B3C9;letter-spacing:0.05em;}
+  .who{display:flex;align-items:center;gap:10px;}
+  .who span{color:#CBD3E3;font-size:13px;}
+  .btn-ghost{
+    background:transparent;border:1px solid #3A4C74;color:#CBD3E3;
+    padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Inter';
+  }
+  .btn-ghost:hover{border-color:var(--amber);color:var(--amber);}
+
+  .panel{
+    background:var(--paper);
+    border-radius:20px;
+    padding:26px;
+    box-shadow:0 20px 50px -20px rgba(0,0,0,0.5);
+    min-height:60vh;
+    animation:fadeInUp 0.35s ease both;
+  }
+
+  .login-wrap{display:flex;flex-direction:column;align-items:center;padding:30px 10px 10px;}
+  .login-wrap h2{font-size:22px;color:var(--navy);margin:0 0 4px;}
+  .login-sub{color:var(--muted);font-size:14px;margin-bottom:26px;text-align:center;}
+  .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:520px;margin-bottom:10px;}
+  .role-card{
+    border:2px solid var(--line);background:#fff;border-radius:var(--radius);
+    padding:18px;cursor:pointer;text-align:left;transition:transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .role-card:hover{border-color:var(--amber);transform:translateY(-2px);box-shadow:0 10px 22px -12px rgba(0,0,0,0.3);}
+  .role-card .icon{font-size:22px;}
+  .role-card .rt{font-family:'Oswald';text-transform:uppercase;font-size:14px;margin-top:8px;color:var(--navy);}
+  .role-card .rd{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  .emp-list{width:100%;max-width:520px;display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+  .emp-row{
+    display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s ease, transform 0.15s ease;
+  }
+  .emp-row:hover{border-color:var(--amber);transform:translateX(2px);}
+  .avatar{
+    width:34px;height:34px;border-radius:50%;background:var(--navy);color:var(--paper);
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;
+  }
+  .emp-row .en{font-weight:600;font-size:14px;}
+  .emp-row .er{font-size:12px;color:var(--muted);}
+  .back-link{margin-top:16px;font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline;}
+
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .section-head h2{font-size:20px;color:var(--navy);margin:0;}
+  .section-head .sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+  .tab{
+    padding:8px 16px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;
+    border:1px solid var(--line);background:#fff;color:var(--muted);transition:background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .tab.active{background:var(--navy);color:var(--paper);border-color:var(--navy);}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:22px;}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;}
+  .kpi .v{font-family:'Oswald';font-size:26px;color:var(--navy);}
+  .kpi .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;}
+  .kpi.amber .v{color:var(--amber-dark);}
+  .kpi.green .v{color:var(--green);}
+  .kpi.red .v{color:var(--red);}
+
+  .roster{display:flex;flex-direction:column;gap:10px;}
+  .roster-row{
+    display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px 16px;flex-wrap:wrap;
+  }
+  .roster-row .info{flex:1;min-width:180px;}
+  .roster-row .name{font-weight:700;font-size:14.5px;}
+  .roster-row .meta{font-size:12px;color:var(--muted);margin-top:2px;}
+  .progress-wrap{flex:1;min-width:140px;}
+  .progress-bar{height:8px;background:var(--paper2);border-radius:6px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--green));border-radius:6px;transition:width 0.4s ease;}
+  .progress-label{font-size:11px;color:var(--muted);margin-top:4px;}
+  .status-chip{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;display:inline-flex;align-items:center;gap:6px;}
+  .status-chip.on{background:var(--green-bg);color:var(--green);}
+  .status-chip.off{background:#EDEAE0;color:var(--muted);}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulseDot 1.4s ease-in-out infinite;flex-shrink:0;}
+  .link-btn{background:none;border:none;color:var(--navy);font-weight:600;font-size:12.5px;cursor:pointer;text-decoration:underline;}
+
+  .list-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;flex-wrap:wrap;}
+  .list-row .info{flex:1;min-width:160px;}
+  .list-row .name{font-weight:700;font-size:14px;}
+  .list-row .meta{font-size:12px;color:var(--muted);margin-top:2px;}
+  .row-actions{display:flex;gap:8px;}
+  .icon-btn{background:none;border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:12px;cursor:pointer;color:var(--navy);font-family:'Inter';}
+  .icon-btn:hover{border-color:var(--amber);}
+  .icon-btn.danger{color:var(--red);}
+  .icon-btn.danger:hover{border-color:var(--red);}
+
+  .cat-chip{padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;}
+  .cat-chip.vip{background:var(--amber);color:var(--navy);}
+  .cat-chip.potential{background:var(--blue-bg);color:var(--blue);}
+  .cat-chip.normal{background:var(--paper2);color:var(--muted);}
+
+  .outcome-tag{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;margin-top:6px;}
+  .outcome-tag.mua{background:var(--green-bg);color:var(--green);}
+  .outcome-tag.khong{background:#EDEAE0;color:var(--muted);}
+  .outcome-tag.dong{background:var(--red-bg);color:var(--red);}
+  .outcome-tag.hen{background:#FDF0DA;color:var(--amber-dark);}
+
+  .builder{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media (max-width:760px){
+    .builder{grid-template-columns:1fr;}
+    .role-grid{grid-template-columns:1fr;}
+    .app{padding:12px;}
+    .panel{padding:18px;border-radius:16px;}
+    .ticket-stub{width:56px;}
+    .perforation{left:56px;}
+    .roster-row{flex-direction:column;align-items:stretch;gap:10px;}
+    .roster-row .status-chip{align-self:flex-start;}
+    .list-row{flex-direction:column;align-items:stretch;}
+    .data-table{font-size:12px;}
+    .data-table th,.data-table td{padding:8px 6px;}
+  }
+  .field-label{font-size:11.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);margin-bottom:6px;display:block;font-weight:700;}
+  select,input[type=text],textarea{
+    width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);
+    font-family:'Inter';font-size:14px;background:#fff;
+  }
+  textarea{resize:vertical;min-height:64px;}
+  input[type=file]{width:100%;font-size:12.5px;padding:8px 0;}
+  .store-pick{border:1px solid var(--line);border-radius:10px;max-height:260px;overflow-y:auto;background:#fff;}
+  .store-pick label{
+    display:flex;align-items:center;gap:10px;padding:10px 12px;font-size:13.5px;
+    border-bottom:1px solid var(--paper2);cursor:pointer;
+  }
+  .store-pick label:last-child{border-bottom:none;}
+  .store-pick input{width:auto;}
+  .btn-primary{
+    background:var(--navy);color:var(--paper);border:none;padding:11px 18px;border-radius:9px;
+    font-weight:700;font-size:13.5px;cursor:pointer;text-transform:uppercase;letter-spacing:0.03em;
+  }
+  .btn-primary:hover{background:var(--navy2);}
+  .btn-primary:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn-amber{background:var(--amber);color:var(--navy);}
+  .btn-amber:hover{background:var(--amber-dark);color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid var(--navy);color:var(--navy);padding:10px 16px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;}
+  .btn-text{background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;text-decoration:underline;padding:0;}
+  .form-grid{display:flex;flex-direction:column;gap:12px;max-width:420px;}
+  .form-actions{display:flex;gap:10px;margin-top:4px;align-items:center;flex-wrap:wrap;}
+
+  .manifest{display:flex;flex-direction:column;gap:14px;}
+  .ticket{
+    position:relative;
+    background:#fff;
+    border-radius:12px;
+    display:flex;
+    box-shadow:0 6px 16px -8px rgba(0,0,0,0.25);
+    overflow:hidden;
+  }
+  .ticket-main{flex:1;padding:16px 16px 16px 18px;}
+  .ticket-stub{
+    width:78px;flex-shrink:0;background:var(--navy);color:var(--paper);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:'Oswald';font-size:11px;text-align:center;padding:6px;
+    position:relative;
+  }
+  .ticket-stub .num{font-size:20px;font-weight:700;}
+  .perforation{
+    position:absolute;left:78px;top:0;bottom:0;width:0;
+    border-left:2px dashed rgba(255,255,255,0.5);
+  }
+  .ticket-stub::after{
+    content:'';position:absolute;left:-6px;top:-6px;width:12px;height:12px;border-radius:50%;background:var(--paper);
+  }
+  .ticket-stub::before{
+    content:'';position:absolute;left:-6px;bottom:-6px;width:12px;height:12px;border-radius:50%;background:var(--paper);
+  }
+  .ticket.visited .ticket-stub{background:var(--green);}
+  .t-name{font-weight:700;font-size:15px;color:var(--ink);}
+  .t-addr{font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .t-meta{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;}
+  .t-meta span{font-size:11.5px;color:var(--muted);}
+  .t-actions{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .stamp{
+    position:absolute;top:14px;right:16px;
+    border:2.5px solid var(--green);color:var(--green);
+    font-family:'Oswald';font-weight:700;font-size:11px;text-transform:uppercase;
+    padding:4px 10px;border-radius:6px;transform:rotate(-8deg);
+    letter-spacing:0.05em;opacity:0.85;
+  }
+
+  .detail-panel{background:var(--paper2);border-radius:10px;padding:14px;margin-top:12px;display:flex;flex-direction:column;gap:12px;}
+  .detail-row-label{font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:0.03em;margin-bottom:4px;}
+  .qty-list{display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px;}
+  .qty-row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-bottom:1px solid var(--paper2);}
+  .qty-row:last-child{border-bottom:none;}
+  .qty-row .pname{flex:1;font-size:13px;}
+  .qty-row .pprice{font-size:11.5px;color:var(--muted);width:78px;text-align:right;font-family:'Space Mono';}
+  .qty-row input[type=number]{width:60px;padding:6px 8px;border-radius:6px;border:1px solid var(--line);font-family:'Space Mono';font-size:13px;}
+  .order-total{font-family:'Oswald';font-size:17px;color:var(--navy);}
+  .photo-preview{width:72px;height:72px;border-radius:8px;object-fit:cover;border:1px solid var(--line);}
+
+  .attend-box{
+    background:var(--navy);color:var(--paper);border-radius:16px;padding:18px 20px;
+    display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;
+  }
+  .attend-box .a-label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#A9B3C9;}
+  .attend-box .a-time{font-family:'Space Mono';font-size:20px;margin-top:2px;}
+  .attend-box .a-status{font-size:12px;margin-top:4px;color:#A9B3C9;}
+
+  .empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
+  .empty-state .big{font-size:36px;margin-bottom:8px;}
+
+  .gps-note{font-size:11.5px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:6px;}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--navy);color:var(--paper);padding:12px 20px;border-radius:10px;
+    font-size:13.5px;box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:999;
+    opacity:0;pointer-events:none;transition:opacity 0.25s, transform 0.25s;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+
+  .range-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+  .data-table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line);}
+  .data-table th{background:var(--navy);color:var(--paper);font-family:'Oswald';font-size:10.5px;text-transform:uppercase;letter-spacing:0.03em;text-align:left;padding:10px 12px;}
+  .data-table td{padding:10px 12px;font-size:13px;border-top:1px solid var(--paper2);}
+  .data-table tr:hover td{background:var(--paper2);}
+
+  .footer-note{text-align:center;color:#7C88A5;font-size:11.5px;margin-top:16px;padding-bottom:6px;}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ====================== LOCAL STORAGE DATA LAYER ====================== */
+const KEYS = { employees:'stt:employees', stores:'stt:stores', routes:'stt:routes', checkins:'stt:checkins', attendance:'stt:attendance', products:'stt:products', orders:'stt:orders' };
+
+const SEED_EMPLOYEES = [
+  {id:'nv1', name:'Nguyễn Văn An', role:'Sales ngoài thị trường', phone:'0901 234 567'},
+  {id:'nv2', name:'Trần Thị Bình', role:'Sales ngoài thị trường', phone:'0902 345 678'},
+  {id:'nv3', name:'Lê Minh Cường', role:'Sales ngoài thị trường', phone:'0903 456 789'},
+];
+
+const SEED_STORES = [
+  {id:'s1', name:'Tạp hóa Cô Ba', address:'12 Phú Riềng Đỏ, Đồng Xoài', lat:11.5350, lng:106.8980, category:'vip'},
+  {id:'s2', name:'Siêu thị mini Hồng Phát', address:'45 Trần Hưng Đạo, Đồng Xoài', lat:11.5390, lng:106.9025, category:'vip'},
+  {id:'s3', name:'Cửa hàng Anh Tuấn', address:'8 Nguyễn Huệ, Đồng Xoài', lat:11.5310, lng:106.8950, category:'normal'},
+  {id:'s4', name:'Tạp hóa Thanh Thảo', address:'21 Lê Duẩn, Đồng Xoài', lat:11.5420, lng:106.9060, category:'potential'},
+  {id:'s5', name:'Cửa hàng Bảy Hên', address:'67 Hùng Vương, Đồng Xoài', lat:11.5280, lng:106.9010, category:'normal'},
+  {id:'s6', name:'Tạp hóa Út Nhỏ', address:'3 Điểu Ong, Đồng Xoài', lat:11.5365, lng:106.8905, category:'potential'},
+  {id:'s7', name:'Siêu thị mini Phát Đạt', address:'99 Ngô Quyền, Đồng Xoài', lat:11.5445, lng:106.8975, category:'normal'},
+];
+
+const SEED_PRODUCTS = [
+  {id:'p1', name:'Nước ngọt lon 330ml (thùng 24 lon)', price:180000},
+  {id:'p2', name:'Mì gói thùng 30 gói', price:120000},
+  {id:'p3', name:'Bánh quy hộp', price:45000},
+  {id:'p4', name:'Sữa tươi lốc 4 hộp', price:52000},
+];
+
+function getStored(key, seedData) {
+  try {
+    const d = localStorage.getItem(key);
+    return d ? JSON.parse(d) : seedData;
+  } catch(e) { return seedData; }
+}
+
+function saveStored(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e){}
+}
+
+/* ====================== HELPERS ====================== */
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371000;
+  const toRad=d=>d*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function fmtTime(ts){ return new Date(ts).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}); }
+function fmtDate(ts){ return new Date(ts).toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit'}); }
+function fmtVND(n){ return (Number(n)||0).toLocaleString('vi-VN') + 'đ'; }
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function initials(name){ return name.split(' ').slice(-2).map(w=>w[0]).join('').toUpperCase(); }
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function catLabel(cat){ return cat==='vip'?'VIP':cat==='potential'?'Tiềm năng':'Thường'; }
+function outcomeLabel(o){ return {mua:'Đã mua hàng', khong:'Không mua', dong:'Quầy đóng cửa', hen:'Hẹn quay lại'}[o] || ''; }
+function outcomeClass(o){ return {mua:'mua', khong:'khong', dong:'dong', hen:'hen'}[o] || ''; }
+function rangeStart(range){
+  const now = new Date();
+  if(range==='today'){ return new Date(now.getFullYear(),now.getMonth(),now.getDate()); }
+  if(range==='week'){ const d=new Date(now); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); d.setHours(0,0,0,0); return d; }
+  if(range==='month'){ return new Date(now.getFullYear(), now.getMonth(), 1); }
+  return null;
+}
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function getPosition(){
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation){ reject(new Error('no-geo')); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude}),
+      err=>reject(err),
+      {enableHighAccuracy:true, timeout:10000}
+    );
+  });
+}
+
+/* ====================== APP STATE ====================== */
+let STATE = {
+  screen:'login',
+  currentEmployee:null,
+  managerTab:'dashboard',
+  employees: getStored(KEYS.employees, SEED_EMPLOYEES),
+  stores: getStored(KEYS.stores, SEED_STORES),
+  routes: getStored(KEYS.routes, {}),
+  checkins: getStored(KEYS.checkins, []),
+  attendance: getStored(KEYS.attendance, []),
+  products: getStored(KEYS.products, SEED_PRODUCTS),
+  orders: getStored(KEYS.orders, []),
+  builderEmployee:'', builderStores:[],
+  newStore:{id:null, name:'', address:'', lat:null, lng:null, category:'normal'},
+  empForm:{id:null, name:'', role:'', phone:''},
+  productForm:{id:null, name:'', price:''},
+  detailStoreId:null,
+  detailDraft:{outcome:'', note:'', photo:null, qty:{}},
+  reportRange:'today',
+};
+
+function todaysCheckins(empId){
+  const tk = todayKey();
+  return STATE.checkins.filter(c=>c.empId===empId && c.time.slice(0,10)===tk);
+}
+function todaysAttendance(empId){
+  const tk = todayKey();
+  return STATE.attendance.filter(a=>a.empId===empId && a.time.slice(0,10)===tk);
+}
+function empRouteStores(empId){
+  const ids = STATE.routes[empId] || [];
+  return ids.map(id=>STATE.stores.find(s=>s.id===id)).filter(Boolean);
+}
+
+/* ====================== RENDER: ROOT ====================== */
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = topbarHtml() + '<div class="panel">' + bodyHtml() + '</div>' + footerHtml();
+  bindEvents();
+}
+
+function topbarHtml(){
+  let who = '';
+  if(STATE.screen==='employee' && STATE.currentEmployee){
+    who = `<div class="who"><span>${esc(STATE.currentEmployee.name)}</span><button class="btn-ghost" data-action="logout">Đăng xuất</button></div>`;
+  } else if(STATE.screen==='manager'){
+    who = `<div class="who"><span>Quản lý tuyến</span><button class="btn-ghost" data-action="logout">Đăng xuất</button></div>`;
+  }
+  return `
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">TT</div>
+      <div class="brand-text">
+        <div class="t1">Tuyến Thị Trường</div>
+        <div class="t2">Quản lý sales ngoài thị trường</div>
+      </div>
+    </div>
+    ${who}
+  </div>`;
+}
+
+function footerHtml(){
+  return `<div class="footer-note">Dữ liệu đã được tự động lưu vào Trình duyệt (LocalStorage).</div>`;
+}
+
+function bodyHtml(){
+  if(STATE.screen==='login') return loginHtml();
+  if(STATE.screen==='employee') return employeeHtml();
+  if(STATE.screen==='manager') return managerHtml();
+  return '';
+}
+
+/* ====================== RENDER: LOGIN ====================== */
+function loginHtml(){
+  return `
+  <div class="login-wrap">
+    <h2>Đăng nhập</h2>
+    <div class="login-sub">Chọn vai trò để vào làm việc — không cần mật khẩu.</div>
+    <div class="role-grid">
+      <div class="role-card" data-action="pick-role" data-role="employee">
+        <div class="icon">🧭</div>
+        <div class="rt">Nhân viên Sales</div>
+        <div class="rd">Xem tuyến, ghé quầy có GPS, ghi kết quả, chấm công</div>
+      </div>
+      <div class="role-card" data-action="pick-role" data-role="manager">
+        <div class="icon">📋</div>
+        <div class="rt">Quản lý</div>
+        <div class="rd">Chia tuyến, quản lý nhân viên/quầy/sản phẩm, xem báo cáo</div>
+      </div>
+    </div>
+    <div id="loginSub"></div>
+  </div>`;
+}
+
+function employeePickHtml(){
+  return `
+    <div class="emp-list">
+      ${STATE.employees.map(e=>`
+        <div class="emp-row" data-action="login-employee" data-id="${e.id}">
+          <div class="avatar">${initials(e.name)}</div>
+          <div>
+            <div class="en">${esc(e.name)}</div>
+            <div class="er">${esc(e.role)}</div>
+          </div>
+        </div>`).join('') || `<div style="padding:14px;color:var(--muted);font-size:13px;">Chưa có nhân viên nào. Vào vai trò Quản lý để thêm.</div>`}
+    </div>
+    <div class="back-link" data-action="back-role">← Quay lại chọn vai trò</div>
+  `;
+}
+
+/* ====================== RENDER: EMPLOYEE ====================== */
+function employeeHtml(){
+  const emp = STATE.currentEmployee;
+  const stores = empRouteStores(emp.id);
+  const checkins = todaysCheckins(emp.id);
+  const visitedIds = new Set(checkins.map(c=>c.storeId));
+  const attend = todaysAttendance(emp.id);
+  const lastAttend = attend[attend.length-1];
+  const isShiftOn = lastAttend && lastAttend.type==='in';
+
+  return `
+    <div class="section-head">
+      <div>
+        <h2>Xin chào, ${esc(emp.name.split(' ').slice(-1)[0])}</h2>
+        <div class="sub">${fmtDate(Date.now())}</div>
+      </div>
+    </div>
+
+    <div class="attend-box">
+      <div>
+        <div class="a-label">Trạng thái ca làm</div>
+        <div class="a-time">${isShiftOn ? 'Đang trong ca' : 'Chưa vào ca'}</div>
+        <div class="a-status">${lastAttend ? (lastAttend.type==='in'?'Vào ca lúc '+fmtTime(lastAttend.time):'Tan ca lúc '+fmtTime(lastAttend.time)) : 'Chưa chấm công hôm nay'}</div>
+      </div>
+      <button class="btn-primary ${isShiftOn?'':'btn-amber'}" data-action="toggle-shift">
+        ${isShiftOn ? 'Tan ca' : 'Vào ca'}
+      </button>
+    </div>
+
+    <div class="section-head">
+      <div>
+        <h2 style="font-size:16px;">Tuyến hôm nay</h2>
+        <div class="sub">${visitedIds.size}/${stores.length} quầy đã ghé</div>
+      </div>
+    </div>
+    ${stores.length ? `
+      <div class="progress-bar" style="margin-bottom:16px;">
+        <div class="progress-fill" style="width:${stores.length? (visitedIds.size/stores.length*100):0}%"></div>
+      </div>` : ''}
+
+    <div class="manifest">
+      ${stores.length===0 ? emptyState('🗺️','Chưa có tuyến được giao','Liên hệ quản lý để được chia tuyến hôm nay.') :
+        stores.map((s,i)=>{
+          const c = checkins.find(c=>c.storeId===s.id);
+          const isOpen = STATE.detailStoreId===s.id;
+          const visitOrders = STATE.orders.filter(o=>o.empId===emp.id && o.storeId===s.id && o.time.slice(0,10)===todayKey());
+          const orderTotal = visitOrders.reduce((sum,o)=>sum+o.total,0);
+          
+          // Google Maps directions URL
+          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
+
+          return `
+          <div class="ticket ${c?'visited':''}">
+            <div class="ticket-stub"><span class="num">${String(i+1).padStart(2,'0')}</span><span>QUẦY</span></div>
+            <div class="perforation"></div>
+            <div class="ticket-main">
+              ${c?`<div class="stamp">Đã ghé</div>`:''}
+              <div class="t-name">${esc(s.name)} <span class="cat-chip ${s.category||'normal'}" style="margin-left:6px;">${catLabel(s.category)}</span></div>
+              <div class="t-addr">${esc(s.address)}</div>
+              <div class="t-meta">
+                ${c ? `<span>🕒 ${fmtTime(c.time)}</span><span>📍 cách ${Math.round(c.distance)}m</span>${orderTotal? `<span>💰 ${fmtVND(orderTotal)}</span>`:''}` : `<span>Chưa ghé</span>`}
+              </div>
+              ${c && c.outcome ? `<div class="outcome-tag ${outcomeClass(c.outcome)}">${outcomeLabel(c.outcome)}</div>` : ''}
+              ${c && c.note ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;">📝 ${esc(c.note)}</div>` : ''}
+              ${c && c.photo ? `<div style="margin-top:8px;"><img class="photo-preview" src="${c.photo}"></div>` : ''}
+              <div class="t-actions">
+                ${!c ? `<button class="btn-amber btn-primary" data-action="checkin" data-store="${s.id}">Ghé quầy (GPS)</button>` : 
+                       `<button class="btn-outline" data-action="toggle-detail" data-store="${s.id}">${isOpen? 'Đóng' : ((c.note||c.outcome||visitOrders.length)? 'Sửa kết quả ghé quầy':'Ghi kết quả ghé quầy')}</button>`}
+                <a href="${mapsUrl}" target="_blank" rel="noopener" class="btn-outline" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🗺️ Chỉ đường</a>
+              </div>
+              ${isOpen ? detailPanelHtml(s, emp, visitOrders) : ''}
+            </div>
+          </div>`;
+        }).join('')
+      }
+    </div>
+  `;
+}
+
+function detailPanelHtml(store, emp, existingOrders){
+  const d = STATE.detailDraft;
+  const total = STATE.products.reduce((sum,p)=> sum + (Number(d.qty[p.id])||0)*p.price, 0);
+  return `
+    <div class="detail-panel">
+      <div>
+        <div class="detail-row-label">Kết quả ghé quầy</div>
+        <select data-action="detail-outcome" data-store="${store.id}">
+          <option value="" ${!d.outcome?'selected':''}>— Chọn kết quả —</option>
+          <option value="mua" ${d.outcome==='mua'?'selected':''}>Đã mua hàng</option>
+          <option value="khong" ${d.outcome==='khong'?'selected':''}>Không mua</option>
+          <option value="dong" ${d.outcome==='dong'?'selected':''}>Quầy đóng cửa</option>
+          <option value="hen" ${d.outcome==='hen'?'selected':''}>Hẹn quay lại</option>
+        </select>
+      </div>
+      <div>
+        <div class="detail-row-label">Ghi chú</div>
+        <textarea id="detail-note" placeholder="VD: Chủ quầy hỏi giá sỉ, cần báo lại tuần sau...">${esc(d.note)}</textarea>
+      </div>
+      <div>
+        <div class="detail-row-label">Ảnh minh chứng (tuỳ chọn)</div>
+        <input type="file" accept="image/*" id="detail-photo" data-action="detail-photo" data-store="${store.id}">
+        ${d.photo? `<div style="margin-top:8px;"><img class="photo-preview" src="${d.photo}"></div>` : ''}
+      </div>
+      <div>
+        <div class="detail-row-label">Đơn hàng (nếu có)</div>
+        <div class="qty-list">
+          ${STATE.products.length===0? '<div style="padding:10px;font-size:12.5px;color:var(--muted);">Chưa có sản phẩm — quản lý thêm ở tab "Sản phẩm".</div>' :
+          STATE.products.map(p=>`
+            <div class="qty-row">
+              <span class="pname">${esc(p.name)}</span>
+              <span class="pprice">${fmtVND(p.price)}</span>
+              <input type="number" min="0" step="1" id="qty-${p.id}" data-pid="${p.id}" class="order-qty-input" value="${d.qty[p.id]||''}" placeholder="0">
+            </div>`).join('')}
+        </div>
+        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span class="detail-row-label" style="margin:0;">Tổng đơn hàng</span>
+          <span class="order-total" id="order-total-live">${fmtVND(total)}</span>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" data-action="save-detail" data-store="${store.id}" data-emp="${emp.id}">Lưu</button>
+        <button class="btn-text" data-action="toggle-detail" data-store="${store.id}">Huỷ</button>
+      </div>
+    </div>
+  `;
+}
+
+function emptyState(icon,title,sub){
+  return `<div class="empty-state"><div class="big">${icon}</div><div style="font-weight:700;color:var(--navy);">${title}</div><div style="font-size:13px;margin-top:4px;">${sub}</div></div>`;
+}
+
+/* ====================== RENDER: MANAGER ====================== */
+function managerHtml(){
+  const tabs = [
+    {id:'dashboard', label:'Bảng điều khiển'},
+    {id:'employees', label:'Nhân viên'},
+    {id:'routes', label:'Chia tuyến'},
+    {id:'stores', label:'Danh sách quầy'},
+    {id:'products', label:'Sản phẩm'},
+    {id:'reports', label:'Báo cáo'},
+  ];
+  const builders = {dashboard:dashboardHtml, employees:employeesHtml, routes:routesHtml, stores:storesHtml, products:productsHtml, reports:reportsHtml};
+  const fn = builders[STATE.managerTab] || dashboardHtml;
+  return `
+    <div class="tabs">
+      ${tabs.map(t=>`<div class="tab ${STATE.managerTab===t.id?'active':''}" data-action="mtab" data-tab="${t.id}">${t.label}</div>`).join('')}
+    </div>
+    ${fn()}
+  `;
+}
+
+function dashboardHtml(){
+  const totalEmp = STATE.employees.length;
+  let totalStoresAssigned=0, totalVisited=0, onShift=0;
+  const tk = todayKey();
+  STATE.employees.forEach(e=>{
+    const rs = empRouteStores(e.id);
+    totalStoresAssigned += rs.length;
+    totalVisited += todaysCheckins(e.id).length;
+    const att = todaysAttendance(e.id);
+    const last = att[att.length-1];
+    if(last && last.type==='in') onShift++;
+  });
+  const totalRevenue = STATE.orders.filter(o=>o.time.slice(0,10)===tk).reduce((s,o)=>s+o.total,0);
+
+  return `
+    <div class="section-head">
+      <div><h2>Bảng điều khiển</h2><div class="sub">${fmtDate(Date.now())} — theo dõi đội sales theo thời gian thực</div></div>
+      <button class="btn-outline" data-action="reset-day">Bắt đầu ngày mới (xoá check-in)</button>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="v">${totalEmp}</div><div class="l">Nhân viên</div></div>
+      <div class="kpi amber"><div class="v">${onShift}</div><div class="l">Đang trong ca</div></div>
+      <div class="kpi green"><div class="v">${totalVisited}</div><div class="l">Lượt ghé hôm nay</div></div>
+      <div class="kpi red"><div class="v">${Math.max(totalStoresAssigned-totalVisited,0)}</div><div class="l">Quầy chưa ghé</div></div>
+      <div class="kpi green"><div class="v">${fmtVND(totalRevenue)}</div><div class="l">Doanh thu hôm nay</div></div>
+    </div>
+
+    <div class="section-head"><h2 style="font-size:16px;">Nhân viên &amp; tiến độ tuyến</h2></div>
+    <div class="roster">
+      ${STATE.employees.length===0 ? emptyState('👥','Chưa có nhân viên','Vào tab "Nhân viên" để thêm.') :
+      STATE.employees.map(e=>{
+        const rs = empRouteStores(e.id);
+        const visited = todaysCheckins(e.id);
+        const visitedIds = new Set(visited.map(c=>c.storeId));
+        const att = todaysAttendance(e.id);
+        const last = att[att.length-1];
+        const onDuty = last && last.type==='in';
+        const lastVisit = visited[visited.length-1];
+        const pct = rs.length ? Math.round(visitedIds.size/rs.length*100) : 0;
+        const empRev = STATE.orders.filter(o=>o.empId===e.id && o.time.slice(0,10)===tk).reduce((s,o)=>s+o.total,0);
+        return `
+        <div class="roster-row">
+          <div class="avatar">${initials(e.name)}</div>
+          <div class="info">
+            <div class="name">${esc(e.name)}</div>
+            <div class="meta">${rs.length} quầy trong tuyến${lastVisit? ' · Ghé gần nhất: '+fmtTime(lastVisit.time)+' tại '+esc((STATE.stores.find(s=>s.id===lastVisit.storeId)||{}).name || '') : ''}${empRev? ' · Doanh thu hôm nay: '+fmtVND(empRev) : ''}</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <div class="progress-label">${visitedIds.size}/${rs.length} quầy · ${pct}%</div>
+          </div>
+          <span class="status-chip ${onDuty?'on':'off'}">${onDuty?'<span class="live-dot"></span>Đang làm việc':'Chưa vào ca'}</span>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+/* ====================== RENDER: EMPLOYEES CRUD ====================== */
+function employeesHtml(){
+  const f = STATE.empForm;
+  return `
+    <div class="section-head"><div><h2>Nhân viên</h2><div class="sub">Thêm, sửa hoặc xoá nhân viên sales</div></div></div>
+    <div class="builder">
+      <div>
+        <label class="field-label">${f.id? 'Sửa nhân viên':'Thêm nhân viên mới'}</label>
+        <div class="form-grid">
+          <input type="text" id="emp-form-name" placeholder="Họ tên" value="${esc(f.name)}">
+          <input type="text" id="emp-form-role" placeholder="Vai trò (VD: Sales ngoài thị trường)" value="${esc(f.role)}">
+          <input type="text" id="emp-form-phone" placeholder="Số điện thoại" value="${esc(f.phone)}">
+          <div class="form-actions">
+            <button class="btn-primary" data-action="save-employee" ${!f.name?'disabled':''}>${f.id? 'Lưu thay đổi':'Thêm nhân viên'}</button>
+            ${f.id? `<button class="btn-text" data-action="cancel-employee-edit">Huỷ</button>`:''}
+          </div>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">${STATE.employees.length} nhân viên</label>
+        <div class="roster" style="max-height:400px;overflow-y:auto;">
+          ${STATE.employees.length===0? emptyState('👥','Chưa có nhân viên','Thêm nhân viên đầu tiên ở bên trái.') :
+          STATE.employees.map(e=>`
+            <div class="list-row">
+              <div class="avatar">${initials(e.name)}</div>
+              <div class="info">
+                <div class="name">${esc(e.name)}</div>
+                <div class="meta">${esc(e.role)}${e.phone? ' · '+esc(e.phone) : ''}</div>
+              </div>
+              <div class="row-actions">
+                <button class="icon-btn" data-action="edit-employee" data-id="${e.id}">Sửa</button>
+                <button class="icon-btn danger" data-action="delete-employee" data-id="${e.id}">Xoá</button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ====================== RENDER: PRODUCTS CRUD ====================== */
+function productsHtml(){
+  const f = STATE.productForm;
+  return `
+    <div class="section-head"><div><h2>Sản phẩm</h2><div class="sub">Danh mục sản phẩm dùng khi ghi đơn hàng tại quầy</div></div></div>
+    <div class="builder">
+      <div>
+        <label class="field-label">${f.id? 'Sửa sản phẩm':'Thêm sản phẩm mới'}</label>
+        <div class="form-grid">
+          <input type="text" id="prod-form-name" placeholder="Tên sản phẩm" value="${esc(f.name)}">
+          <input type="text" id="prod-form-price" placeholder="Đơn giá (VNĐ)" value="${esc(f.price)}">
+          <div class="form-actions">
+            <button class="btn-primary" data-action="save-product" ${!f.name?'disabled':''}>${f.id? 'Lưu thay đổi':'Thêm sản phẩm'}</button>
+            ${f.id? `<button class="btn-text" data-action="cancel-product-edit">Huỷ</button>`:''}
+          </div>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">${STATE.products.length} sản phẩm</label>
+        <div class="roster" style="max-height:400px;overflow-y:auto;">
+          ${STATE.products.length===0? emptyState('📦','Chưa có sản phẩm','Thêm sản phẩm đầu tiên ở bên trái.') :
+          STATE.products.map(p=>`
+            <div class="list-row">
+              <div class="info">
+                <div class="name">${esc(p.name)}</div>
+                <div class="meta">${fmtVND(p.price)}</div>
+              </div>
+              <div class="row-actions">
+                <button class="icon-btn" data-action="edit-product" data-id="${p.id}">Sửa</button>
+                <button class="icon-btn danger" data-action="delete-product" data-id="${p.id}">Xoá</button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ====================== RENDER: ROUTES ====================== */
+function routesHtml(){
+  return `
+    <div class="section-head"><div><h2>Chia tuyến</h2><div class="sub">Chọn nhân viên và các quầy cần ghé cho tuyến hiện tại</div></div></div>
+    <div class="builder">
+      <div>
+        <label class="field-label">Nhân viên</label>
+        <select id="sel-emp">
+          <option value="">— Chọn nhân viên —</option>
+          ${STATE.employees.map(e=>`<option value="${e.id}" ${STATE.builderEmployee===e.id?'selected':''}>${esc(e.name)}</option>`).join('')}
+        </select>
+        <div style="margin-top:16px;">
+          <label class="field-label">Quầy trong tuyến (${STATE.builderStores.length} đã chọn)</label>
+          <div class="store-pick">
+            ${STATE.stores.map(s=>`
+              <label>
+                <input type="checkbox" data-action="toggle-store" value="${s.id}" ${STATE.builderStores.includes(s.id)?'checked':''}>
+                <div><div style="font-weight:600;">${esc(s.name)} <span class="cat-chip ${s.category||'normal'}" style="margin-left:4px;">${catLabel(s.category)}</span></div><div style="font-size:11.5px;color:var(--muted);">${esc(s.address)}</div></div>
+              </label>`).join('') || '<div style="padding:14px;color:var(--muted);font-size:13px;">Chưa có quầy nào — thêm ở tab "Danh sách quầy".</div>'}
+          </div>
+        </div>
+        <button class="btn-primary" style="margin-top:16px;" data-action="save-route" ${!STATE.builderEmployee?'disabled':''}>Lưu tuyến</button>
+      </div>
+      <div>
+        <label class="field-label">Tuyến hiện tại theo nhân viên</label>
+        <div class="roster">
+          ${STATE.employees.length===0? emptyState('👥','Chưa có nhân viên','') : STATE.employees.map(e=>{
+            const rs = empRouteStores(e.id);
+            return `<div class="roster-row" style="align-items:flex-start;">
+              <div class="avatar">${initials(e.name)}</div>
+              <div class="info">
+                <div class="name">${esc(e.name)}</div>
+                <div class="meta">${rs.length? rs.map(s=>esc(s.name)).join(', ') : 'Chưa có tuyến'}</div>
+              </div>
+              ${rs.length? `<button class="link-btn" data-action="clear-route" data-emp="${e.id}">Xoá tuyến</button>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ====================== RENDER: STORES CRUD ====================== */
+function storesHtml(){
+  const f = STATE.newStore;
+  return `
+    <div class="section-head"><div><h2>Danh sách quầy</h2><div class="sub">Toàn bộ quầy/cửa hàng có thể đưa vào tuyến</div></div></div>
+    <div class="builder">
+      <div>
+        <label class="field-label">${f.id? 'Sửa quầy':'Tên quầy'}</label>
+        <input type="text" id="new-store-name" placeholder="VD: Tạp hóa Minh Anh" value="${esc(f.name)}">
+        <div style="height:12px;"></div>
+        <label class="field-label">Địa chỉ</label>
+        <input type="text" id="new-store-address" placeholder="VD: 10 Lê Lợi, Đồng Xoài" value="${esc(f.address)}">
+        <div style="height:12px;"></div>
+        <label class="field-label">Phân loại quầy</label>
+        <select id="new-store-cat" data-action="set-store-cat">
+          <option value="normal" ${f.category==='normal'?'selected':''}>Thường</option>
+          <option value="potential" ${f.category==='potential'?'selected':''}>Tiềm năng</option>
+          <option value="vip" ${f.category==='vip'?'selected':''}>VIP</option>
+        </select>
+        <div class="gps-note">
+          📍 ${f.lat ? `Toạ độ đã lấy: ${f.lat.toFixed(5)}, ${f.lng.toFixed(5)}` : 'Chưa lấy toạ độ GPS'}
+        </div>
+        <button class="btn-outline" style="margin-top:10px;" data-action="get-store-gps">Lấy vị trí hiện tại làm toạ độ quầy</button>
+        <div class="form-actions" style="margin-top:16px;">
+          <button class="btn-primary" id="store-save-btn" data-action="add-store" ${!f.name?'disabled':''}>${f.id? 'Lưu thay đổi':'Thêm quầy'}</button>
+          ${f.id? `<button class="btn-text" data-action="cancel-store-edit">Huỷ</button>`:''}
+        </div>
+      </div>
+      <div>
+        <label class="field-label">${STATE.stores.length} quầy hiện có</label>
+        <div class="roster" style="max-height:400px;overflow-y:auto;">
+          ${STATE.stores.map(s=>`
+            <div class="list-row">
+              <span style="width:8px;height:8px;border-radius:50%;background:var(--amber);flex-shrink:0;"></span>
+              <div class="info">
+                <div class="name">${esc(s.name)} <span class="cat-chip ${s.category||'normal'}" style="margin-left:6px;">${catLabel(s.category)}</span></div>
+                <div class="meta">${esc(s.address)}</div>
+              </div>
+              <div class="row-actions">
+                <button class="icon-btn" data-action="edit-store" data-id="${s.id}">Sửa</button>
+                <button class="icon-btn danger" data-action="delete-store" data-id="${s.id}">Xoá</button>
+              </div>
+            </div>`).join('') || emptyState('🏬','Chưa có quầy nào','')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ====================== RENDER: REPORTS ====================== */
+function reportsHtml(){
+  const range = STATE.reportRange;
+  const start = rangeStart(range);
+  const checkins = STATE.checkins.filter(c=> !start || new Date(c.time)>=start);
+  const orders = STATE.orders.filter(o=> !start || new Date(o.time)>=start);
+  const totalRevenue = orders.reduce((s,o)=>s+o.total,0);
+
+  const byEmp = STATE.employees.map(e=>{
+    const ec = checkins.filter(c=>c.empId===e.id);
+    const eo = orders.filter(o=>o.empId===e.id);
+    return { name:e.name, visits:ec.length, orderCount:eo.length, revenue: eo.reduce((s,o)=>s+o.total,0) };
+  }).sort((a,b)=>b.revenue-a.revenue);
+
+  const byStore = STATE.stores.map(s=>{
+    const sc = checkins.filter(c=>c.storeId===s.id);
+    const so = orders.filter(o=>o.storeId===s.id);
+    return { name:s.name, category:s.category, visits:sc.length, orderCount:so.length, revenue: so.reduce((s2,o)=>s2+o.total,0) };
+  }).sort((a,b)=>b.revenue-a.revenue);
+
+  const rangeLabel = {today:'Hôm nay', week:'Tuần này', month:'Tháng này', all:'Toàn bộ'};
+
+  return `
+    <div class="section-head"><div><h2>Báo cáo</h2><div class="sub">Tổng hợp lượt ghé quầy và doanh thu</div></div></div>
+    <div class="range-tabs">
+      ${['today','week','month','all'].map(r=>`<div class="tab ${range===r?'active':''}" data-action="report-range" data-range="${r}">${rangeLabel[r]}</div>`).join('')}
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="v">${checkins.length}</div><div class="l">Lượt ghé quầy</div></div>
+      <div class="kpi amber"><div class="v">${orders.length}</div><div class="l">Đơn hàng</div></div>
+      <div class="kpi green"><div class="v">${fmtVND(totalRevenue)}</div><div class="l">Doanh thu</div></div>
+      <div class="kpi"><div class="v">${STATE.employees.length}</div><div class="l">Nhân viên</div></div>
+    </div>
+
+    <div class="section-head"><h2 style="font-size:16px;">Theo nhân viên</h2></div>
+    <div style="overflow-x:auto;margin-bottom:24px;">
+    <table class="data-table">
+      <thead><tr><th>Nhân viên</th><th>Lượt ghé</th><th>Đơn hàng</th><th>Doanh thu</th></tr></thead>
+      <tbody>
+        ${byEmp.length? byEmp.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.visits}</td><td>${r.orderCount}</td><td>${fmtVND(r.revenue)}</td></tr>`).join('') : `<tr><td colspan="4" style="text-align:center;color:var(--muted);">Chưa có dữ liệu</td></tr>`}
+      </tbody>
+    </table>
+    </div>
+
+    <div class="section-head"><h2 style="font-size:16px;">Theo quầy</h2></div>
+    <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead><tr><th>Quầy</th><th>Loại</th><th>Lượt ghé</th><th>Đơn hàng</th><th>Doanh thu</th></tr></thead>
+      <tbody>
+        ${byStore.length? byStore.map(r=>`<tr><td>${esc(r.name)}</td><td><span class="cat-chip ${r.category||'normal'}">${catLabel(r.category)}</span></td><td>${r.visits}</td><td>${r.orderCount}</td><td>${fmtVND(r.revenue)}</td></tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--muted);">Chưa có dữ liệu</td></tr>`}
+      </tbody>
+    </table>
+    </div>
+  `;
+}
+
+/* ====================== EVENTS ====================== */
+function bindEvents(){
+  document.querySelectorAll('[data-action]').forEach(el=>{
+    const evt = el.tagName==='SELECT' ? 'change' : (el.tagName==='INPUT' && (el.type==='checkbox'||el.type==='file')) ? 'change' : 'click';
+    el.addEventListener(evt, handleAction);
+  });
+
+  const selEmp = document.getElementById('sel-emp');
+  if(selEmp) selEmp.addEventListener('change', e=>{ 
+    STATE.builderEmployee = e.target.value; 
+    STATE.builderStores = STATE.routes[e.target.value] ? [...STATE.routes[e.target.value]] : [];
+    render(); 
+  });
+
+  const nsName = document.getElementById('new-store-name');
+  if(nsName) nsName.addEventListener('input', e=>{
+    STATE.newStore.name = e.target.value;
+    const btn = document.getElementById('store-save-btn');
+    if(btn) btn.disabled = !STATE.newStore.name;
+  });
+  const nsAddr = document.getElementById('new-store-address');
+  if(nsAddr) nsAddr.addEventListener('input', e=>{ STATE.newStore.address = e.target.value; });
+
+  const efName = document.getElementById('emp-form-name');
+  if(efName) efName.addEventListener('input', e=>{
+    STATE.empForm.name = e.target.value;
+    const btn = document.querySelector('[data-action="save-employee"]');
+    if(btn) btn.disabled = !STATE.empForm.name;
+  });
+  const efRole = document.getElementById('emp-form-role');
+  if(efRole) efRole.addEventListener('input', e=>{ STATE.empForm.role = e.target.value; });
+  const efPhone = document.getElementById('emp-form-phone');
+  if(efPhone) efPhone.addEventListener('input', e=>{ STATE.empForm.phone = e.target.value; });
+
+  const pfName = document.getElementById('prod-form-name');
+  if(pfName) pfName.addEventListener('input', e=>{
+    STATE.productForm.name = e.target.value;
+    const btn = document.querySelector('[data-action="save-product"]');
+    if(btn) btn.disabled = !STATE.productForm.name;
+  });
+  const pfPrice = document.getElementById('prod-form-price');
+  if(pfPrice) pfPrice.addEventListener('input', e=>{ STATE.productForm.price = e.target.value; });
+
+  const detailNote = document.getElementById('detail-note');
+  if(detailNote) detailNote.addEventListener('input', e=>{ STATE.detailDraft.note = e.target.value; });
+
+  document.querySelectorAll('.order-qty-input').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      STATE.detailDraft.qty[e.target.dataset.pid] = e.target.value;
+      const total = STATE.products.reduce((sum,p)=> sum + (Number(STATE.detailDraft.qty[p.id])||0)*p.price, 0);
+      const totalEl = document.getElementById('order-total-live');
+      if(totalEl) totalEl.textContent = fmtVND(total);
+    });
+  });
+}
+
+async function handleAction(e){
+  const el = e.currentTarget;
+  const action = el.dataset.action;
+
+  if(action==='pick-role'){
+    const role = el.dataset.role;
+    if(role==='manager'){ STATE.screen='manager'; STATE.managerTab='dashboard'; render(); return; }
+    if(role==='employee'){
+      document.getElementById('loginSub').innerHTML = employeePickHtml();
+      bindEvents();
+      return;
+    }
+  }
+  if(action==='back-role'){ document.getElementById('loginSub').innerHTML=''; return; }
+  if(action==='login-employee'){
+    const emp = STATE.employees.find(x=>x.id===el.dataset.id);
+    STATE.currentEmployee = emp; STATE.screen='employee'; STATE.detailStoreId=null; render(); return;
+  }
+  if(action==='logout'){ STATE.screen='login'; STATE.currentEmployee=null; render(); return; }
+  if(action==='mtab'){ STATE.managerTab = el.dataset.tab; render(); return; }
+
+  if(action==='toggle-shift'){
+    const emp = STATE.currentEmployee;
+    const att = todaysAttendance(emp.id);
+    const last = att[att.length-1];
+    const goingOn = !(last && last.type==='in');
+    try{
+      const pos = await getPosition();
+      STATE.attendance.push({empId:emp.id, type: goingOn?'in':'out', time: new Date().toISOString(), lat:pos.lat, lng:pos.lng});
+    }catch(err){
+      STATE.attendance.push({empId:emp.id, type: goingOn?'in':'out', time: new Date().toISOString(), lat:null, lng:null});
+    }
+    saveStored(KEYS.attendance, STATE.attendance);
+    showToast(goingOn? 'Đã vào ca' : 'Đã tan ca');
+    render(); return;
+  }
+
+  if(action==='checkin'){
+    const storeId = el.dataset.store;
+    const store = STATE.stores.find(s=>s.id===storeId);
+    const emp = STATE.currentEmployee;
+    el.disabled = true; el.textContent = 'Đang lấy vị trí...';
+    try{
+      const pos = await getPosition();
+      const dist = haversine(pos.lat,pos.lng,store.lat,store.lng);
+      let proceed = true;
+      if(dist>200){
+        proceed = confirm(`Bạn đang cách quầy "${store.name}" khoảng ${Math.round(dist)}m (>200m). Vẫn xác nhận ghé quầy?`);
+      }
+      if(proceed){
+        STATE.checkins.push({empId:emp.id, storeId, time:new Date().toISOString(), lat:pos.lat, lng:pos.lng, distance:dist, outcome:'', note:'', photo:null});
+        saveStored(KEYS.checkins, STATE.checkins);
+        showToast(`Đã ghé "${store.name}" — cách ${Math.round(dist)}m`);
+      }
+    }catch(err){
+      showToast('Không lấy được vị trí GPS. Hãy bật định vị trình duyệt.');
+    }
+    render(); return;
+  }
+
+  if(action==='toggle-detail'){
+    const storeId = el.dataset.store;
+    if(STATE.detailStoreId===storeId){
+      STATE.detailStoreId = null;
+      STATE.detailDraft = {outcome:'', note:'', photo:null, qty:{}};
+    } else {
+      STATE.detailStoreId = storeId;
+      const emp = STATE.currentEmployee;
+      const c = todaysCheckins(emp.id).find(c=>c.storeId===storeId);
+      
+      // Load existing order qty if exists
+      const existingOrder = STATE.orders.find(o=>o.empId===emp.id && o.storeId===storeId && o.time.slice(0,10)===todayKey());
+      const initialQty = {};
+      if(existingOrder && existingOrder.items){
+        existingOrder.items.forEach(it=>{ initialQty[it.productId] = it.qty; });
+      }
+
+      STATE.detailDraft = { outcome:(c&&c.outcome)||'', note:(c&&c.note)||'', photo:(c&&c.photo)||null, qty:initialQty };
+    }
+    render(); return;
+  }
+  if(action==='detail-outcome'){ STATE.detailDraft.outcome = el.value; return; }
+  if(action==='detail-photo'){
+    const file = el.files && el.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{ STATE.detailDraft.photo = reader.result; render(); };
+    reader.readAsDataURL(file);
+    return;
+  }
+  if(action==='save-detail'){
+    const storeId = el.dataset.store, empId = el.dataset.emp;
+    const tk = todayKey();
+    const c = STATE.checkins.find(x=>x.empId===empId && x.storeId===storeId && x.time.slice(0,10)===tk);
+    if(c){ c.outcome = STATE.detailDraft.outcome; c.note = STATE.detailDraft.note; c.photo = STATE.detailDraft.photo; }
+    
+    const total = STATE.products.reduce((sum,p)=> sum + (Number(STATE.detailDraft.qty[p.id])||0)*p.price, 0);
+    
+    // Gỡ bỏ đơn cũ của lượt ghé hôm nay nếu có để tránh trùng lặp
+    STATE.orders = STATE.orders.filter(o=> !(o.empId===empId && o.storeId===storeId && o.time.slice(0,10)===tk));
+
+    if(total > 0){
+      const items = STATE.products.filter(p=>Number(STATE.detailDraft.qty[p.id])>0)
+        .map(p=>({productId:p.id, name:p.name, price:p.price, qty:Number(STATE.detailDraft.qty[p.id])}));
+      STATE.orders.push({id:'o'+Math.random().toString(36).slice(2,8), empId, storeId, time:new Date().toISOString(), items, total});
+    }
+
+    saveStored(KEYS.checkins, STATE.checkins);
+    saveStored(KEYS.orders, STATE.orders);
+    STATE.detailStoreId = null;
+    STATE.detailDraft = {outcome:'', note:'', photo:null, qty:{}};
+    showToast('Đã lưu kết quả ghé quầy');
+    render(); return;
+  }
+
+  if(action==='toggle-store'){
+    const id = el.value;
+    if(el.checked){ if(!STATE.builderStores.includes(id)) STATE.builderStores.push(id); }
+    else{ STATE.builderStores = STATE.builderStores.filter(x=>x!==id); }
+    return;
+  }
+  if(action==='save-route'){
+    if(!STATE.builderEmployee) return;
+    STATE.routes[STATE.builderEmployee] = [...STATE.builderStores];
+    saveStored(KEYS.routes, STATE.routes);
+    showToast('Đã lưu tuyến');
+    STATE.builderEmployee=''; STATE.builderStores=[];
+    render(); return;
+  }
+  if(action==='clear-route'){
+    const empId = el.dataset.emp;
+    delete STATE.routes[empId];
+    saveStored(KEYS.routes, STATE.routes);
+    render(); return;
+  }
+
+  if(action==='edit-employee'){
+    const emp = STATE.employees.find(x=>x.id===el.dataset.id);
+    if(emp) STATE.empForm = {id:emp.id, name:emp.name, role:emp.role||'', phone:emp.phone||''};
+    render(); return;
+  }
+  if(action==='cancel-employee-edit'){ STATE.empForm = {id:null,name:'',role:'',phone:''}; render(); return; }
+  if(action==='save-employee'){
+    const f = STATE.empForm;
+    if(!f.name) return;
+    if(f.id){
+      const idx = STATE.employees.findIndex(x=>x.id===f.id);
+      if(idx>-1) STATE.employees[idx] = {...STATE.employees[idx], name:f.name, role:f.role, phone:f.phone};
+    } else {
+      const id = 'nv'+Math.random().toString(36).slice(2,8);
+      STATE.employees.push({id, name:f.name, role: f.role || 'Sales ngoài thị trường', phone:f.phone});
+    }
+    saveStored(KEYS.employees, STATE.employees);
+    const wasEdit = !!f.id;
+    STATE.empForm = {id:null,name:'',role:'',phone:''};
+    showToast(wasEdit? 'Đã lưu thay đổi' : 'Đã thêm nhân viên');
+    render(); return;
+  }
+  if(action==='delete-employee'){
+    const id = el.dataset.id;
+    const emp = STATE.employees.find(x=>x.id===id);
+    if(!emp) return;
+    if(!confirm(`Xoá nhân viên "${emp.name}"? Tuyến hiện tại của nhân viên này sẽ bị xoá.`)) return;
+    STATE.employees = STATE.employees.filter(x=>x.id!==id);
+    delete STATE.routes[id];
+    saveStored(KEYS.employees, STATE.employees);
+    saveStored(KEYS.routes, STATE.routes);
+    showToast('Đã xoá nhân viên');
+    render(); return;
+  }
+
+  if(action==='edit-product'){
+    const p = STATE.products.find(x=>x.id===el.dataset.id);
+    if(p) STATE.productForm = {id:p.id, name:p.name, price:String(p.price)};
+    render(); return;
+  }
+  if(action==='cancel-product-edit'){ STATE.productForm = {id:null,name:'',price:''}; render(); return; }
+  if(action==='save-product'){
+    const f = STATE.productForm;
+    if(!f.name) return;
+    const price = Number(String(f.price).replace(/[^0-9]/g,'')) || 0;
+    if(f.id){
+      const idx = STATE.products.findIndex(x=>x.id===f.id);
+      if(idx>-1) STATE.products[idx] = {...STATE.products[idx], name:f.name, price};
+    } else {
+      const id = 'p'+Math.random().toString(36).slice(2,8);
+      STATE.products.push({id, name:f.name, price});
+    }
+    saveStored(KEYS.products, STATE.products);
+    const wasEdit = !!f.id;
+    STATE.productForm = {id:null,name:'',price:''};
+    showToast(wasEdit? 'Đã lưu thay đổi' : 'Đã thêm sản phẩm');
+    render(); return;
+  }
+  if(action==='delete-product'){
+    const id = el.dataset.id;
+    const p = STATE.products.find(x=>x.id===id);
+    if(!p) return;
+    if(!confirm(`Xoá sản phẩm "${p.name}"?`)) return;
+    STATE.products = STATE.products.filter(x=>x.id!==id);
+    saveStored(KEYS.products, STATE.products);
+    showToast('Đã xoá sản phẩm');
+    render(); return;
+  }
+
+  if(action==='set-store-cat'){ STATE.newStore.category = el.value; return; }
+  if(action==='edit-store'){
+    const s = STATE.stores.find(x=>x.id===el.dataset.id);
+    if(s) STATE.newStore = {id:s.id, name:s.name, address:s.address, lat:s.lat, lng:s.lng, category:s.category||'normal'};
+    render(); return;
+  }
+  if(action==='cancel-store-edit'){ STATE.newStore = {id:null,name:'',address:'',lat:null,lng:null,category:'normal'}; render(); return; }
+  if(action==='delete-store'){
+    const id = el.dataset.id;
+    const s = STATE.stores.find(x=>x.id===id);
+    if(!s) return;
+    if(!confirm(`Xoá quầy "${s.name}"? Quầy sẽ được gỡ khỏi mọi tuyến.`)) return;
+    STATE.stores = STATE.stores.filter(x=>x.id!==id);
+    Object.keys(STATE.routes).forEach(empId=>{ STATE.routes[empId] = (STATE.routes[empId]||[]).filter(sid=>sid!==id); });
+    STATE.builderStores = STATE.builderStores.filter(sid=>sid!==id);
+    saveStored(KEYS.stores, STATE.stores);
+    saveStored(KEYS.routes, STATE.routes);
+    showToast('Đã xoá quầy');
+    render(); return;
+  }
+  if(action==='get-store-gps'){
+    try{
+      const pos = await getPosition();
+      STATE.newStore.lat = pos.lat; STATE.newStore.lng = pos.lng;
+      showToast('Đã lấy toạ độ hiện tại');
+    }catch(err){ showToast('Không lấy được GPS'); }
+    render(); return;
+  }
+  if(action==='add-store'){
+    const f = STATE.newStore;
+    if(!f.name) return;
+    if(f.id){
+      const idx = STATE.stores.findIndex(x=>x.id===f.id);
+      if(idx>-1){
+        STATE.stores[idx] = {...STATE.stores[idx], name:f.name, address: f.address || '(chưa có địa chỉ)',
+          lat: f.lat!=null? f.lat : STATE.stores[idx].lat, lng: f.lng!=null? f.lng : STATE.stores[idx].lng, category:f.category||'normal'};
+      }
+      showToast('Đã lưu thay đổi');
+    } else {
+      const id = 's' + Math.random().toString(36).slice(2,8);
+      STATE.stores.push({
+        id, name:f.name, address: f.address || '(chưa có địa chỉ)',
+        lat: f.lat || (11.53 + (Math.random()-0.5)*0.02),
+        lng: f.lng || (106.90 + (Math.random()-0.5)*0.02),
+        category: f.category || 'normal'
+      });
+      showToast('Đã thêm quầy mới');
+    }
+    saveStored(KEYS.stores, STATE.stores);
+    STATE.newStore = {id:null, name:'',address:'',lat:null,lng:null,category:'normal'};
+    render(); return;
+  }
+
+  if(action==='report-range'){ STATE.reportRange = el.dataset.range; render(); return; }
+
+  if(action==='reset-day'){
+    if(!confirm('Xoá toàn bộ check-in, đơn hàng và chấm công hôm nay để bắt đầu ngày mới?')) return;
+    STATE.checkins = []; STATE.attendance = []; STATE.orders = [];
+    saveStored(KEYS.checkins, []); saveStored(KEYS.attendance, []); saveStored(KEYS.orders, []);
+    showToast('Đã bắt đầu ngày mới');
+    render(); return;
+  }
+}
+
+/* ====================== INIT ====================== */
+render();
+</script>
+</body>
+</html>
