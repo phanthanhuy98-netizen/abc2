@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hệ Thống Quản Lý Thị Trường Full Enterprise — DMS/SFA</title>
+<title>Hệ Thống DMS/SFA Enterprise Toàn Diện — Quản Lý Thị Trường</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#12213D">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,7 +13,7 @@
   :root { --navy:#12213D; --amber:#FCA311; --paper:#F6F1E6; --line:#D9D0BC; --muted:#6B6558; --green:#2D6A4F; --red:#C1121F; }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Inter',sans-serif;background:var(--navy);color:#1a1a1a;padding:12px;}
-  .app{max-width:1250px;margin:0 auto;}
+  .app{max-width:1300px;margin:0 auto;}
   .panel{background:var(--paper);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,0.3);margin-top:12px;}
   h1,h2,h3,h4{font-family:'Oswald',sans-serif;color:var(--navy);}
   
@@ -30,6 +30,7 @@
   .badge{display:inline-block;padding:3px 8px;background:#EFE7D6;border-radius:4px;font-size:11px;font-weight:700;}
   .badge-success{background:#D8F3DC;color:var(--green);}
   .badge-pending{background:#FFF3BF;color:#B57700;}
+  .badge-danger{background:#F8D7DA;color:var(--red);}
   
   input, select, textarea { width:100%; padding:8px; margin:4px 0 10px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:13px; }
   table { width:100%; border-collapse:collapse; margin-top:10px; }
@@ -39,12 +40,13 @@
   .login-box{max-width:380px;margin:50px auto;background:#fff;padding:24px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.4);}
   .hidden{display:none !important;}
   .stat-number{font-size:24px;font-weight:700;color:var(--navy);margin-top:4px;}
-  .img-preview{width:100%;max-height:120px;object-fit:cover;border-radius:6px;margin-top:6px;}
+  .img-preview{width:80px;height:60px;object-fit:cover;border-radius:4px;}
+  .cart-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);}
 </style>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } 
+  import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, enableIndexedDbPersistence } 
     from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -60,16 +62,22 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  // KÍCH HOẠT CHẾ ĐỘ OFFLINE CACHE
+  enableIndexedDbPersistence(db).catch(err => console.log("Offline persistence error:", err.code));
+
   let currentUser = null;
   let currentTab = 'sales'; 
-  let stores = [], orders = [], users = [], checkins = [];
+  let stores = [], orders = [], users = [], checkins = [], products = [];
+  let currentCart = []; // Giỏ hàng đang chọn
 
+  // LẮNG NGHE DATA REALTIME
   onSnapshot(collection(db, "stores"), snap => { stores = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "orders"), snap => { orders = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "users"), snap => { users = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "checkins"), snap => { checkins = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
+  onSnapshot(collection(db, "products"), snap => { products = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
 
-  // 1. XÁC THỰC VÀ PHÂN QUYỀN
+  // 1. ĐĂNG NHẬP & PHÂN QUYỀN
   window.handleLogin = function(e) {
     e.preventDefault();
     const u = document.getElementById('logUser').value.trim();
@@ -99,65 +107,94 @@
     document.getElementById('appView').classList.add('hidden');
   };
 
-  // 2. CHỨC NĂNG QUẢN LÝ (ADMIN)
-  window.addUser = async function(e) {
+  // 2. CHỨC NĂNG SẢN PHẨM (CATALOG/SKU)
+  window.addProduct = async function(e) {
     e.preventDefault();
     if(currentUser.role !== 'admin') return;
-    const name = document.getElementById('usrName').value;
-    const username = document.getElementById('usrUser').value;
-    const password = document.getElementById('usrPass').value;
-    const role = document.getElementById('usrRole').value;
+    const name = document.getElementById('prdName').value;
+    const price = Number(document.getElementById('prdPrice').value);
+    const stock = Number(document.getElementById('prdStock').value);
+    const code = document.getElementById('prdCode').value;
 
-    await addDoc(collection(db, "users"), { name, username, password, role, createdAt: serverTimestamp() });
-    alert("Đã thêm tài khoản nhân viên thành công!");
-    document.getElementById('usrForm').reset();
+    await addDoc(collection(db, "products"), { name, price, stock, code, createdAt: serverTimestamp() });
+    alert("Thêm sản phẩm thành công!");
+    document.getElementById('prdForm').reset();
   };
 
-  window.deleteUser = async function(id) {
-    if(currentUser.role === 'admin' && confirm("Xóa nhân viên này?")) await deleteDoc(doc(db, "users", id));
+  window.deleteProduct = async function(id) {
+    if(currentUser.role === 'admin' && confirm("Xóa sản phẩm này khỏi danh mục?")) await deleteDoc(doc(db, "products", id));
   };
 
-  window.addStore = async function(e) {
+  // 3. CHỨC NĂNG BẮT ĐƠN HÀNG TỰ ĐỘNG THEO SẢN PHẨM & CHIẾT KHẤU
+  window.addToCart = function(productId) {
+    const prd = products.find(p => p.id === productId);
+    if (!prd) return;
+    const item = currentCart.find(c => c.id === productId);
+    if (item) {
+      item.qty += 1;
+    } else {
+      currentCart.push({ id: prd.id, name: prd.name, price: prd.price, qty: 1 });
+    }
+    renderCartUI();
+  };
+
+  window.removeFromCart = function(productId) {
+    currentCart = currentCart.filter(c => c.id !== productId);
+    renderCartUI();
+  };
+
+  function renderCartUI() {
+    const cartContainer = document.getElementById('cartList');
+    const discount = Number(document.getElementById('ordDiscount')?.value || 0);
+    if (!cartContainer) return;
+
+    let subtotal = 0;
+    cartContainer.innerHTML = currentCart.map(i => {
+      const itemTotal = i.price * i.qty;
+      subtotal += itemTotal;
+      return `
+        <div class="cart-item">
+          <div><b>${i.name}</b> x ${i.qty}<br><small>${i.price.toLocaleString()}đ/SP</small></div>
+          <div><b>${itemTotal.toLocaleString()}đ</b> <button class="btn btn-red btn-sm" onclick="removeFromCart('${i.id}')">X</button></div>
+        </div>
+      `;
+    }).join('');
+
+    const finalTotal = subtotal * (1 - discount / 100);
+    document.getElementById('cartTotal').innerText = `${finalTotal.toLocaleString('vi-VN')} đ`;
+  }
+
+  window.submitOrder = async function(e) {
     e.preventDefault();
-    if(currentUser.role !== 'admin') return;
-    const name = document.getElementById('stName').value;
-    const address = document.getElementById('stAddr').value;
-    const phone = document.getElementById('stPhone').value;
-
-    await addDoc(collection(db, "stores"), { name, address, phone, createdAt: serverTimestamp() });
-    alert("Đã thêm điểm bán mới!");
-    document.getElementById('stForm').reset();
-  };
-
-  window.deleteStore = async function(id) {
-    if(currentUser.role === 'admin' && confirm("Xóa điểm bán này?")) await deleteDoc(doc(db, "stores", id));
-  };
-
-  window.updateOrderStatus = async function(id, status) {
-    if(currentUser.role === 'admin') await updateDoc(doc(db, "orders", id), { status });
-  };
-
-  window.deleteOrder = async function(id) {
-    if(currentUser.role === 'admin' && confirm("Xóa đơn hàng này?")) await deleteDoc(doc(db, "orders", id));
-  };
-
-  // 3. CHỨC NĂNG SALES (ĐI THỊ TRƯỜNG & LÊN ĐƠN)
-  window.addOrder = async function(e) {
-    e.preventDefault();
+    if (currentCart.length === 0) return alert("Vui lòng chọn ít nhất 1 sản phẩm vào giỏ hàng!");
+    
     const storeName = document.getElementById('ordStore').value;
-    const amount = Number(document.getElementById('ordAmount').value);
+    const discount = Number(document.getElementById('ordDiscount').value || 0);
     const note = document.getElementById('ordNote').value;
+    
+    let subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    let finalAmount = subtotal * (1 - discount / 100);
 
     await addDoc(collection(db, "orders"), {
       salesName: currentUser.name,
       salesUser: currentUser.username,
-      storeName, amount, note, status: 'Chờ duyệt',
+      storeName,
+      items: currentCart,
+      discount,
+      amount: finalAmount,
+      paymentStatus: 'Chưa thanh toán (Công nợ)',
+      status: 'Chờ duyệt',
+      note,
       createdAt: serverTimestamp()
     });
-    alert("Đã gửi đơn hàng thành công!");
+
+    alert("Gửi đơn hàng thành công!");
+    currentCart = [];
     document.getElementById('ordForm').reset();
+    renderCartUI();
   };
 
+  // 4. CHECK-IN GPS & BẢO MẬT ẢNH
   window.doCheckinWithPhoto = function(storeName) {
     const fileInput = document.getElementById(`img_${storeName}`);
     let photoData = "";
@@ -187,50 +224,119 @@
         salesName: currentUser.name, salesUser: currentUser.username, storeName, 
         lat: 11.535, lng: 106.898, photo: photoData, createdAt: serverTimestamp()
       });
-      alert(`Check-in thành công tại ${storeName} (Mô phỏng GPS)!`);
+      alert(`Check-in thành công tại ${storeName} (GPS Mô Phỏng)!`);
     });
   }
 
+  // 5. CHỨC NĂNG QUẢN LÝ (ADMIN) & XUẤT EXCEL
+  window.addUser = async function(e) {
+    e.preventDefault();
+    if(currentUser.role !== 'admin') return;
+    const name = document.getElementById('usrName').value;
+    const username = document.getElementById('usrUser').value;
+    const password = document.getElementById('usrPass').value;
+    const role = document.getElementById('usrRole').value;
+
+    await addDoc(collection(db, "users"), { name, username, password, role, createdAt: serverTimestamp() });
+    alert("Đã thêm tài khoản nhân viên!");
+    document.getElementById('usrForm').reset();
+  };
+
+  window.deleteUser = async function(id) {
+    if(currentUser.role === 'admin' && confirm("Xóa tài khoản nhân viên này?")) await deleteDoc(doc(db, "users", id));
+  };
+
+  window.addStore = async function(e) {
+    e.preventDefault();
+    if(currentUser.role !== 'admin') return;
+    const name = document.getElementById('stName').value;
+    const address = document.getElementById('stAddr').value;
+    const phone = document.getElementById('stPhone').value;
+    const routeDay = document.getElementById('stRoute').value;
+
+    await addDoc(collection(db, "stores"), { name, address, phone, routeDay, createdAt: serverTimestamp() });
+    alert("Đã thêm điểm bán mới vào Tuyến Đường!");
+    document.getElementById('stForm').reset();
+  };
+
+  window.deleteStore = async function(id) {
+    if(currentUser.role === 'admin' && confirm("Xóa điểm bán này?")) await deleteDoc(doc(db, "stores", id));
+  };
+
+  window.updateOrderStatus = async function(id, status) {
+    if(currentUser.role === 'admin') await updateDoc(doc(db, "orders", id), { status });
+  };
+
+  window.updatePaymentStatus = async function(id, paymentStatus) {
+    if(currentUser.role === 'admin') await updateDoc(doc(db, "orders", id), { paymentStatus });
+  };
+
+  window.deleteOrder = async function(id) {
+    if(currentUser.role === 'admin' && confirm("Xóa đơn hàng này?")) await deleteDoc(doc(db, "orders", id));
+  };
+
+  // XUẤT BÁO CÁO EXCEL / CSV
+  window.exportToCSV = function() {
+    let csv = "Sales,Khach Hang,Gia Tri (VND),Chiet Khau (%),Trang Thai,Thanh Toan,Ghi Chu\n";
+    orders.forEach(o => {
+      csv += `"${o.salesName}","${o.storeName}",${o.amount},${o.discount||0},"${o.status}","${o.paymentStatus||'Cong no'}","${o.note||''}"\n`;
+    });
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Bao_Cao_Doanh_So_DMS_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+  };
+
   window.switchTab = function(tab) { currentTab = tab; renderUI(); };
 
+  // 6. RENDER GIAO DIỆN PHÂN QUYỀN CHI TIẾT
   function renderUI() {
     if (!currentUser) return;
-    document.getElementById('userInfo').innerText = `${currentUser.name} (${currentUser.role === 'admin' ? 'Quản Lý' : 'Sales'})`;
+    document.getElementById('userInfo').innerText = `${currentUser.name} (${currentUser.role === 'admin' ? 'Quản Lý Admin' : 'Sales Thị Trường'})`;
     
     if (currentUser.role === 'admin') {
       document.getElementById('navAdminUsers').classList.remove('hidden');
       document.getElementById('navAdminDash').classList.remove('hidden');
+      document.getElementById('navAdminPrd').classList.remove('hidden');
     } else {
       document.getElementById('navAdminUsers').classList.add('hidden');
       document.getElementById('navAdminDash').classList.add('hidden');
+      document.getElementById('navAdminPrd').classList.add('hidden');
     }
 
     const main = document.getElementById('mainContent');
     
+    // DASHBOARD QUẢN LÝ REALTIME
     if (currentTab === 'dashboard') {
       const totalRev = orders.reduce((sum, o) => sum + (o.amount || 0), 0);
+      const pendingOrders = orders.filter(o => o.status === 'Chờ duyệt').length;
       main.innerHTML = `
-        <h2>Báo Cáo Tổng Quan Realtime</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h2>Báo Cáo Tổng Quan Realtime Enterprise</h2>
+          <button class="btn btn-green" onclick="exportToCSV()">📥 Xuất File Báo Cáo Excel/CSV</button>
+        </div>
+
         <div class="grid">
-          <div class="card"><span class="badge">Doanh Số Tổng</span><div class="stat-number">${totalRev.toLocaleString('vi-VN')} đ</div></div>
-          <div class="card"><span class="badge">Đơn Hàng</span><div class="stat-number">${orders.length} đơn</div></div>
+          <div class="card"><span class="badge">Tổng Doanh Số Cloud</span><div class="stat-number">${totalRev.toLocaleString('vi-VN')} đ</div></div>
+          <div class="card"><span class="badge">Tổng Đơn Hàng</span><div class="stat-number">${orders.length} đơn</div></div>
+          <div class="card"><span class="badge badge-pending">Đơn Chờ Duyệt</span><div class="stat-number">${pendingOrders} đơn</div></div>
           <div class="card"><span class="badge">Check-in GPS</span><div class="stat-number">${checkins.length} lượt</div></div>
-          <div class="card"><span class="badge">Điểm Bán</span><div class="stat-number">${stores.length} quầy</div></div>
         </div>
 
         <div class="grid" style="margin-top:16px;">
           <div class="card" style="grid-column: span 3;">
-            <h3>📍 Nhật Ký Check-in GPS & Ảnh Quầy Hàng Realtime</h3>
+            <h3>📍 Nhật Ký Check-in GPS & Hình Ảnh Đi Thị Trường</h3>
             <table>
               <thead><tr><th>Sales</th><th>Điểm Bán</th><th>Tọa Độ GPS</th><th>Ảnh Quầy Hàng</th></tr></thead>
               <tbody>
-                ${checkins.length === 0 ? '<tr><td colspan="4">Chưa có dữ liệu check-in...</td></tr>' : ''}
+                ${checkins.length === 0 ? '<tr><td colspan="4">Chưa có lượt check-in nào...</td></tr>' : ''}
                 ${checkins.map(c => `
                   <tr>
                     <td><b>${c.salesName}</b></td>
                     <td>${c.storeName}</td>
                     <td><span class="badge">📍 ${c.lat?.toFixed(4)}, ${c.lng?.toFixed(4)}</span></td>
-                    <td>${c.photo ? `<img src="${c.photo}" class="img-preview">` : 'Không có ảnh'}</td>
+                    <td>${c.photo ? `<img src="${c.photo}" class="img-preview">` : 'Chưa gửi ảnh'}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -239,63 +345,98 @@
         </div>
       `;
     }
+    // THỊ TRƯỜNG, TUYẾN ĐƯỜNG & BẮT ĐƠN HÀNG (SALES & ADMIN)
     else if (currentTab === 'sales') {
       const myOrders = currentUser.role === 'admin' ? orders : orders.filter(o => o.salesUser === currentUser.username);
       const myRev = myOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
 
       main.innerHTML = `
-        <h2>Thị Trường & Bắt Đơn</h2>
+        <h2>Thị Trường & Tuyến Đường Lên Đơn</h2>
         <div style="margin-bottom:12px;" class="badge badge-success">Doanh số cá nhân: ${myRev.toLocaleString('vi-VN')} đ</div>
         
         <div class="grid">
           <div class="card">
-            <h3>📍 Ghé Thăm & Chụp Ảnh Quầy</h3>
+            <h3>📍 Lịch Viếng Thăm Theo Tuyến</h3>
             ${stores.map(s => `
               <div style="margin-top:10px;padding-bottom:10px;border-bottom:1px solid #eee;">
-                <b>${s.name}</b><br><small style="color:var(--muted);">${s.address}</small>
+                <b>${s.name}</b> <span class="badge badge-pending">${s.routeDay || 'Cả tuần'}</span><br>
+                <small style="color:var(--muted);">${s.address} - 📞${s.phone||'N/A'}</small>
                 <input type="file" id="img_${s.name}" accept="image/*" capture="environment" style="margin-top:6px;">
-                <button class="btn btn-amber btn-sm" style="width:100%;margin-top:4px;" onclick="doCheckinWithPhoto('${s.name}')">📍 Check-in + Gửi Ảnh</button>
+                <button class="btn btn-amber btn-sm" style="width:100%;margin-top:4px;" onclick="doCheckinWithPhoto('${s.name}')">📍 Check-in + Gửi Ảnh Quầy</button>
               </div>
             `).join('')}
           </div>
 
-          <div class="card">
-            <h3>📝 Bắt Đơn Hàng Mới</h3>
-            <form id="ordForm" onsubmit="addOrder(event)">
-              <label>Điểm Bán:</label>
-              <select id="ordStore" required>
-                ${stores.map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
-              </select>
-              <label>Giá trị (VNĐ):</label>
-              <input type="number" id="ordAmount" placeholder="Ví dụ: 1500000" required>
-              <label>Ghi chú sản phẩm:</label>
-              <textarea id="ordNote" rows="2" placeholder="Chi tiết sản phẩm..."></textarea>
-              <button class="btn btn-green" style="width:100%;">🚀 Gửi Đơn Hàng Lên Cloud</button>
-            </form>
+          <div class="card" style="grid-column: span 2;">
+            <h3>📦 Catalog Sản Phẩm & Giỏ Hàng Bắt Đơn</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div>
+                <h4>Danh Mục Sản Phẩm SKU</h4>
+                <div style="max-height:280px;overflow-y:auto;margin-top:8px;">
+                  ${products.map(p => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-bottom:1px solid #eee;">
+                      <div><b>${p.name}</b><br><small style="color:var(--green);">${p.price.toLocaleString()}đ</small> | <small>Tồn: ${p.stock}</small></div>
+                      <button class="btn btn-green btn-sm" onclick="addToCart('${p.id}')">+ Chọn</button>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div>
+                <form id="ordForm" onsubmit="submitOrder(event)">
+                  <label>Khách Hàng:</label>
+                  <select id="ordStore" required>
+                    ${stores.map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
+                  </select>
+
+                  <label>Chiết khấu đơn hàng (%):</label>
+                  <input type="number" id="ordDiscount" min="0" max="100" value="0" onchange="renderCartUI()">
+
+                  <label>Ghi chú đơn hàng:</label>
+                  <textarea id="ordNote" rows="2" placeholder="Ghi chú chi tiết..."></textarea>
+
+                  <div style="background:#f0f0f0;padding:10px;border-radius:8px;margin-bottom:8px;">
+                    <h4>Giỏ Hàng Chọn:</h4>
+                    <div id="cartList">Chưa chọn sản phẩm...</div>
+                    <hr style="margin:8px 0;">
+                    <div style="display:flex;justify-content:space-between;">
+                      <b>Tổng Tiền Sau CK:</b>
+                      <b id="cartTotal" style="color:var(--red);font-size:16px;">0 đ</b>
+                    </div>
+                  </div>
+
+                  <button class="btn btn-green" style="width:100%;">🚀 Gửi Đơn Hàng Lên Cloud</button>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
       `;
     } 
+    // QUẢN LÝ ĐƠN HÀNG & CÔNG NỢ
     else if (currentTab === 'orders') {
       const displayOrders = currentUser.role === 'admin' ? orders : orders.filter(o => o.salesUser === currentUser.username);
       main.innerHTML = `
-        <h2>Quản Lý Đơn Hàng</h2>
+        <h2>Quản Lý Đơn Hàng & Công Nợ Khách Hàng</h2>
         <div class="card">
           <table>
             <thead>
-              <tr><th>Sales</th><th>Khách Hàng</th><th>Giá Trị</th><th>Trạng Thái</th><th>Ghi Chú</th>${currentUser.role==='admin'?'<th>Thao Tác Admin</th>':''}</tr>
+              <tr><th>Sales</th><th>Khách Hàng</th><th>Chi Tiết SP</th><th>Chiết Khấu</th><th>Thành Tiền</th><th>Trạng Thái</th><th>Thanh Toán</th>${currentUser.role==='admin'?'<th>Thao Tác Admin</th>':''}</tr>
             </thead>
             <tbody>
               ${displayOrders.map(o => `
                 <tr>
                   <td><b>${o.salesName}</b></td>
                   <td>${o.storeName}</td>
+                  <td><small>${o.items ? o.items.map(i => `${i.name} (x${i.qty})`).join(', ') : 'Đơn nhập tay'}</small></td>
+                  <td>${o.discount || 0}%</td>
                   <td><b style="color:var(--green);">${(o.amount||0).toLocaleString('vi-VN')} đ</b></td>
                   <td><span class="badge ${o.status==='Đã duyệt'?'badge-success':'badge-pending'}">${o.status || 'Chờ duyệt'}</span></td>
-                  <td>${o.note || '---'}</td>
+                  <td><span class="badge ${o.paymentStatus==='Đã thanh toán'?'badge-success':'badge-danger'}">${o.paymentStatus || 'Công nợ'}</span></td>
                   ${currentUser.role === 'admin' ? `
                     <td>
                       <button class="btn btn-green btn-sm" onclick="updateOrderStatus('${o.id}', 'Đã duyệt')">Duyệt</button>
+                      <button class="btn btn-amber btn-sm" onclick="updatePaymentStatus('${o.id}', 'Đã thanh toán')">Đã Thu Tiền</button>
                       <button class="btn btn-red btn-sm" onclick="deleteOrder('${o.id}')">Xóa</button>
                     </td>
                   ` : ''}
@@ -306,31 +447,75 @@
         </div>
       `;
     }
+    // DANH MỤC SẢN PHẨM SKU (ADMIN ONLY)
+    else if (currentTab === 'products' && currentUser.role === 'admin') {
+      main.innerHTML = `
+        <h2>Quản Lý Catalog Sản Phẩm (SKU)</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>+ Thêm Sản Phẩm Mới</h3>
+            <form id="prdForm" onsubmit="addProduct(event)">
+              <input type="text" id="prdCode" placeholder="Mã SKU (VD: SP01)" required>
+              <input type="text" id="prdName" placeholder="Tên sản phẩm" required>
+              <input type="number" id="prdPrice" placeholder="Đơn giá niêm yết (VNĐ)" required>
+              <input type="number" id="prdStock" placeholder="Số lượng tồn kho" required>
+              <button class="btn btn-green" style="width:100%;">+ Lưu Sản Phẩm</button>
+            </form>
+          </div>
+
+          <div class="card" style="grid-column: span 2;">
+            <h3>Danh Danh Mục Sản Phẩm</h3>
+            <table>
+              <thead><tr><th>Mã SKU</th><th>Tên Sản Phẩm</th><th>Đơn Giá</th><th>Tồn Kho</th><th>Thao Tác</th></tr></thead>
+              <tbody>
+                ${products.map(p => `
+                  <tr>
+                    <td><b>${p.code||'SKU'}</b></td>
+                    <td>${p.name}</td>
+                    <td><b style="color:var(--green);">${p.price.toLocaleString('vi-VN')} đ</b></td>
+                    <td><span class="badge">${p.stock}</span></td>
+                    <td><button class="btn btn-red btn-sm" onclick="deleteProduct('${p.id}')">Xóa</button></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+    // QUẢN LÝ KHÁCH HÀNG CRM & PHÂN TUYẾN
     else if (currentTab === 'stores') {
       main.innerHTML = `
-        <h2>Quản Lý Khách Hàng (CRM)</h2>
+        <h2>Quản Lý Khách Hàng Điểm Bán & Tuyến Đường (CRM)</h2>
         <div class="grid">
           ${currentUser.role === 'admin' ? `
             <div class="card">
-              <h3>+ Thêm Khách Hàng</h3>
+              <h3>+ Thêm Điểm Bán Mới</h3>
               <form id="stForm" onsubmit="addStore(event)">
-                <input type="text" id="stName" placeholder="Tên cửa hàng" required>
+                <input type="text" id="stName" placeholder="Tên cửa hàng/quầy" required>
                 <input type="text" id="stAddr" placeholder="Địa chỉ chi tiết" required>
                 <input type="text" id="stPhone" placeholder="Số điện thoại">
-                <button class="btn btn-green" style="width:100%;">+ Lưu Khách Hàng</button>
+                <label>Phân tuyến viếng thăm:</label>
+                <select id="stRoute">
+                  <option value="Thứ 2 - Thứ 4 - Thứ 6">Thứ 2 - Thứ 4 - Thứ 6</option>
+                  <option value="Thứ 3 - Thứ 5 - Thứ 7">Thứ 3 - Thứ 5 - Thứ 7</option>
+                  <option value="Cả tuần">Tất cả các ngày</option>
+                </select>
+                <button class="btn btn-green" style="width:100%;">+ Lưu Điểm Bán</button>
               </form>
             </div>
           ` : ''}
           <div class="card" style="${currentUser.role==='admin'?'grid-column: span 2;':''}">
-            <h3>Danh Sách Khách Hàng</h3>
+            <h3>Danh Sách Điểm Bán</h3>
             <table>
-              <thead><tr><th>Tên Quầy</th><th>Địa Chỉ</th><th>SĐT</th>${currentUser.role==='admin'?'<th>Xóa</th>':''}</tr></thead>
+              <thead><tr><th>Tên Quầy</th><th>Địa Chỉ</th><th>SĐT</th><th>Tuyến Đi</th>${currentUser.role==='admin'?'<th>Thao Tác</th>':''}</tr></thead>
               <tbody>
                 ${stores.map(s => `
                   <tr>
                     <td><b>${s.name}</b></td>
                     <td>${s.address}</td>
                     <td>${s.phone||'---'}</td>
+                    <td><span class="badge">${s.routeDay||'Cả tuần'}</span></td>
                     ${currentUser.role==='admin'? `<td><button class="btn btn-red btn-sm" onclick="deleteStore('${s.id}')">Xóa</button></td>`:''}
                   </tr>
                 `).join('')}
@@ -340,35 +525,36 @@
         </div>
       `;
     }
+    // QUẢN LÝ NHÂN VIÊN HR
     else if (currentTab === 'users' && currentUser.role === 'admin') {
       main.innerHTML = `
         <h2>Quản Lý Nhân Sự (HR)</h2>
         <div class="grid">
           <div class="card">
-            <h3>+ Thêm Nhân Viên</h3>
+            <h3>+ Thêm Nhân Viên Mới</h3>
             <form id="usrForm" onsubmit="addUser(event)">
               <input type="text" id="usrName" placeholder="Họ và tên" required>
               <input type="text" id="usrUser" placeholder="Tên đăng nhập" required>
               <input type="password" id="usrPass" placeholder="Mật khẩu" required>
-              <label>Chức vụ:</label>
+              <label>Vai trò:</label>
               <select id="usrRole">
                 <option value="sales">Sales Thị Trường</option>
                 <option value="admin">Quản Lý Admin</option>
               </select>
-              <button class="btn btn-green" style="width:100%;">+ Cấp Tài Khoản</button>
+              <button class="btn btn-green" style="width:100%;">+ Tạo Tài Khoản</button>
             </form>
           </div>
           <div class="card" style="grid-column: span 2;">
             <h3>Danh Sách Nhân Viên</h3>
             <table>
-              <thead><tr><th>Họ Tên</th><th>Tài Khoản</th><th>Mật Khẩu</th><th>Vai Trò</th><th>Xóa</th></tr></thead>
+              <thead><tr><th>Họ Tên</th><th>Tài Khoản</th><th>Mật Khẩu</th><th>Vai Trò</th><th>Thao Tác</th></tr></thead>
               <tbody>
                 ${users.map(u => `
                   <tr>
                     <td><b>${u.name}</b></td>
                     <td>${u.username}</td>
                     <td><code>${u.password}</code></td>
-                    <td><span class="badge">${u.role}</span></td>
+                    <td><span class="badge">${u.role === 'admin' ? 'Quản lý' : 'Sales'}</span></td>
                     <td><button class="btn btn-red btn-sm" onclick="deleteUser('${u.id}')">Xóa</button></td>
                   </tr>
                 `).join('')}
@@ -384,6 +570,7 @@
 <body>
 
 <div class="app">
+  <!-- MÀN HÌNH ĐĂNG NHẬP -->
   <div id="loginView" class="login-box">
     <h2 style="text-align:center;margin-bottom:16px;">ĐĂNG NHẬP DẠNG ROLE</h2>
     <form onsubmit="handleLogin(event)">
@@ -395,24 +582,26 @@
     </form>
   </div>
 
+  <!-- MÀN HÌNH ỨNG DỤNG BÊN TRONG -->
   <div id="appView" class="hidden">
     <div class="topbar">
       <div>
-        <h1>Tuyến Thị Trường Enterprise</h1>
+        <h1>Hệ Thống DMS/SFA Enterprise</h1>
         <div style="font-size:12px;">Xin chào: <b id="userInfo" style="color:var(--amber);">---</b></div>
       </div>
       <div class="nav-btns">
         <button id="navAdminDash" class="btn btn-amber hidden" onclick="switchTab('dashboard')">📊 Báo Cáo</button>
         <button class="btn" onclick="switchTab('sales')">📍 Đi Thị Trường</button>
-        <button class="btn btn-amber" onclick="switchTab('orders')">📦 Đơn Hàng</button>
-        <button class="btn btn-amber" onclick="switchTab('stores')">🏪 Khách Hàng</button>
+        <button id="navAdminPrd" class="btn btn-amber hidden" onclick="switchTab('products')">📦 Sản Phẩm</button>
+        <button class="btn btn-amber" onclick="switchTab('orders')">🛒 Đơn Hàng & Công Nợ</button>
+        <button class="btn btn-amber" onclick="switchTab('stores')">🏪 Khách Hàng & Tuyến</button>
         <button id="navAdminUsers" class="btn btn-amber hidden" onclick="switchTab('users')">👥 Nhân Viên</button>
         <button class="btn btn-red" onclick="handleLogout()">Đăng Xuất</button>
       </div>
     </div>
 
     <div class="panel">
-      <div id="mainContent">Đang kết nối Cloud...</div>
+      <div id="mainContent">Đang kết nối dữ liệu Cloud...</div>
     </div>
   </div>
 </div>
