@@ -3,922 +3,159 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tuyến Thị Trường — Quản lý Sales ngoài</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2312213D'/%3E%3Ctext x='50' y='66' font-size='46' text-anchor='middle' fill='%23FCA311' font-family='Arial' font-weight='bold'%3ETT%3C/text%3E%3C/svg%3E">
+<title>Tuyến Thị Trường — Cloud Firebase Realtime</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-  :root{
-    --navy:#12213D; --navy2:#1B2F52; --amber:#FCA311; --amber-dark:#D6870A;
-    --paper:#F6F1E6; --paper2:#EFE7D6; --ink:#1A1B1F; --green:#2D6A4F;
-    --green-bg:#E4F0EA; --red:#C1121F; --red-bg:#FBE7E7; --blue:#2A5C8A;
-    --blue-bg:#DCEBFB; --line:#D9D0BC; --muted:#6B6558; --radius:14px;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{font-family:'Inter',sans-serif;background:var(--navy);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
-  @keyframes fadeInUp{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
-  
-  .app{max-width:1180px;margin:0 auto;padding:20px;}
-  h1,h2,h3,.display{font-family:'Oswald',sans-serif; letter-spacing:0.02em; text-transform:uppercase;}
-  .mono{font-family:'Space Mono',monospace;}
-
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 4px 20px 4px;}
-  .brand{display:flex;align-items:center;gap:12px;color:var(--paper);}
-  .brand-mark{
-    width:38px;height:38px;border-radius:8px;background:linear-gradient(135deg,var(--amber),var(--amber-dark));
-    display:flex;align-items:center;justify-content:center;font-family:'Oswald';font-weight:700;color:var(--navy);font-size:18px;flex-shrink:0;
-  }
-  .brand-text .t1{font-family:'Oswald';font-weight:600;font-size:18px;letter-spacing:0.04em;text-transform:uppercase;}
-  .brand-text .t2{font-size:11px;color:#A9B3C9;letter-spacing:0.05em;}
-  .who{display:flex;align-items:center;gap:10px;}
-  .who span{color:#CBD3E3;font-size:13px;}
-  .btn-ghost{background:transparent;border:1px solid #3A4C74;color:#CBD3E3;padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Inter';}
-  .btn-ghost:hover{border-color:var(--amber);color:var(--amber);}
-
-  .panel{background:var(--paper);border-radius:20px;padding:26px;box-shadow:0 20px 50px -20px rgba(0,0,0,0.5);min-height:60vh;animation:fadeInUp 0.35s ease both;}
-
-  .login-wrap{display:flex;flex-direction:column;align-items:center;padding:30px 10px 10px;}
-  .login-wrap h2{font-size:22px;color:var(--navy);margin:0 0 4px;}
-  .login-sub{color:var(--muted);font-size:14px;margin-bottom:26px;text-align:center;}
-  .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:520px;margin-bottom:10px;}
-  .role-card{border:2px solid var(--line);background:#fff;border-radius:var(--radius);padding:18px;cursor:pointer;text-align:left;transition:transform 0.15s ease, border-color 0.15s ease;}
-  .role-card:hover{border-color:var(--amber);transform:translateY(-2px);}
-  .role-card .icon{font-size:22px;}
-  .role-card .rt{font-family:'Oswald';text-transform:uppercase;font-size:14px;margin-top:8px;color:var(--navy);}
-  .role-card .rd{font-size:12px;color:var(--muted);margin-top:2px;}
-
-  .emp-list{width:100%;max-width:520px;display:flex;flex-direction:column;gap:8px;margin-top:8px;}
-  .emp-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;}
-  .emp-row:hover{border-color:var(--amber);}
-  .avatar{width:34px;height:34px;border-radius:50%;background:var(--navy);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
-  .emp-row .en{font-weight:600;font-size:14px;}
-  .emp-row .er{font-size:12px;color:var(--muted);}
-  .back-link{margin-top:16px;font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline;}
-
-  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
-  .section-head h2{font-size:20px;color:var(--navy);margin:0;}
-  .section-head .sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
-  .tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
-  .tab{padding:8px 16px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--muted);}
-  .tab.active{background:var(--navy);color:var(--paper);border-color:var(--navy);}
-
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:22px;}
-  .kpi{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;}
-  .kpi .v{font-family:'Oswald';font-size:26px;color:var(--navy);}
-  .kpi .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;}
-  .kpi.amber .v{color:var(--amber-dark);}
-  .kpi.green .v{color:var(--green);}
-
-  .cat-chip{padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;}
-  .cat-chip.vip{background:var(--amber);color:var(--navy);}
-  .cat-chip.potential{background:var(--blue-bg);color:var(--blue);}
-  .cat-chip.normal{background:var(--paper2);color:var(--muted);}
-
-  .code-badge{display:inline-block;padding:2px 6px;border-radius:4px;background:var(--paper2);color:var(--navy);font-family:'Space Mono';font-size:11px;font-weight:700;margin-right:6px;}
-
-  .outcome-tag{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;margin-top:6px;}
-  .outcome-tag.mua{background:var(--green-bg);color:var(--green);}
-  .outcome-tag.khong{background:#EDEAE0;color:var(--muted);}
-  .outcome-tag.dong{background:var(--red-bg);color:var(--red);}
-  .outcome-tag.hen{background:#FDF0DA;color:var(--amber-dark);}
-
-  .field-label{font-size:11.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);margin-bottom:6px;display:block;font-weight:700;}
-  select,input[type=text],input[type=number],textarea{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);font-family:'Inter';font-size:14px;background:#fff;}
-  textarea{resize:vertical;min-height:64px;}
-
-  .btn-primary{background:var(--navy);color:var(--paper);border:none;padding:9px 16px;border-radius:999px;font-weight:700;font-size:13px;cursor:pointer;text-transform:uppercase;}
-  .btn-primary:hover{background:var(--navy2);}
+  :root { --navy:#12213D; --amber:#FCA311; --paper:#F6F1E6; --line:#D9D0BC; --muted:#6B6558; --green:#2D6A4F; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--navy);color:#1a1a1a;padding:20px;}
+  .app{max-width:1000px;margin:0 auto;}
+  .panel{background:var(--paper);border-radius:16px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,0.3);}
+  h1,h2,h3{font-family:'Oswald',sans-serif;color:var(--navy);}
+  .topbar{display:flex;justify-content:space-between;align-items:center;color:#fff;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .btn{background:var(--navy);color:#fff;border:none;padding:10px 18px;border-radius:20px;font-weight:600;cursor:pointer;}
   .btn-amber{background:var(--amber);color:var(--navy);}
-  .btn-amber:hover{background:var(--amber-dark);color:#fff;}
-  .btn-outline{background:transparent;border:1.5px solid var(--navy);color:var(--navy);padding:7px 14px;border-radius:999px;font-weight:700;font-size:12px;cursor:pointer;}
-  .btn-sm-danger{background:var(--red-bg);color:var(--red);border:1px solid var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;}
-  .btn-sm-edit{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;margin-right:4px;}
-  .btn-text{background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;text-decoration:underline;padding:0;}
-
-  .progress-bar{height:8px;background:var(--line);border-radius:999px;overflow:hidden;}
-  .progress-fill{height:100%;background:var(--green);transition:width 0.3s ease;}
-
-  .manifest{display:flex;flex-direction:column;gap:14px;}
-  .ticket{position:relative;background:#fff;border-radius:12px;display:flex;box-shadow:0 6px 16px -8px rgba(0,0,0,0.15);overflow:hidden;border:1px solid var(--line);}
-  .ticket-main{flex:1;padding:16px;}
-  .ticket-stub{width:78px;flex-shrink:0;background:var(--navy);color:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Oswald';font-size:11px;text-align:center;padding:6px;position:relative;}
-  .ticket-stub .num{font-size:20px;font-weight:700;}
-  .perforation{position:absolute;left:78px;top:0;bottom:0;width:0;border-left:2px dashed rgba(255,255,255,0.4);}
-  .ticket.visited .ticket-stub{background:var(--green);}
-  .t-name{font-weight:700;font-size:15px;color:var(--ink);display:flex;align-items:center;flex-wrap:wrap;gap:4px;}
-  .t-addr{font-size:12.5px;color:var(--muted);margin-top:2px;}
-  .t-meta{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);}
-  .t-actions{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-  .stamp{position:absolute;top:14px;right:16px;border:2.5px solid var(--green);color:var(--green);font-family:'Oswald';font-weight:700;font-size:11px;text-transform:uppercase;padding:4px 10px;border-radius:6px;transform:rotate(-8deg);opacity:0.85;}
-
-  .detail-panel{background:var(--paper2);border-radius:10px;padding:14px;margin-top:12px;display:flex;flex-direction:column;gap:12px;}
-  .qty-list{display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px;}
-  .qty-row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-bottom:1px solid var(--paper2);}
-  .qty-row .pinfo{flex:1;display:flex;flex-direction:column;}
-  .qty-row .pname{font-size:13px;font-weight:600;}
-  .qty-row .psku{font-size:11px;color:var(--muted);font-family:'Space Mono';}
-  .qty-row .pprice{font-size:11.5px;color:var(--muted);width:78px;text-align:right;font-family:'Space Mono';}
-  .qty-row input[type=number]{width:60px;padding:6px 8px;border-radius:6px;border:1px solid var(--line);font-family:'Space Mono';font-size:13px;}
-  .order-total{font-family:'Oswald';font-size:17px;color:var(--navy);}
-
-  .attend-box{background:var(--navy);color:var(--paper);border-radius:16px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
-  .attend-box .a-label{font-size:11px;text-transform:uppercase;color:#A9B3C9;}
-  .attend-box .a-time{font-family:'Space Mono';font-size:20px;margin-top:2px;}
-  .attend-box .a-status{font-size:12px;margin-top:4px;color:#A9B3C9;}
-
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  @media(max-width:600px){ .grid-2{grid-template-columns:1fr;} }
-
-  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
-  .card h3{margin:0 0 10px;font-size:15px;color:var(--navy);}
-
-  .empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
-  .empty-state .big{font-size:36px;margin-bottom:8px;}
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:var(--paper);padding:12px 20px;border-radius:10px;font-size:13.5px;box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:999;opacity:0;pointer-events:none;transition:all 0.25s;}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
-
-  .data-table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line);}
-  .data-table th{background:var(--navy);color:var(--paper);font-family:'Oswald';font-size:10.5px;text-transform:uppercase;text-align:left;padding:10px 12px;}
-  .data-table td{padding:10px 12px;font-size:13px;border-top:1px solid var(--paper2);}
-  .footer-note{text-align:center;color:#7C88A5;font-size:11.5px;margin-top:16px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px;}
+  .badge{display:inline-block;padding:3px 8px;background:#EFE7D6;border-radius:4px;font-size:12px;font-weight:700;}
+  .status-online{color:var(--green);font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;}
+  .status-dot{width:8px;height:8px;background:var(--green);border-radius:50%;display:inline-block;}
 </style>
+
+<!-- Tải Firebase SDK Modular -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp } 
+    from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // Cấu hình Firebase chuẩn cho project: uy-phan
+  const firebaseConfig = {
+    apiKey: "AIzaSyC7JD5MhzMka84JPyVG_5LbZjPz8JOnbuc",
+    authDomain: "uy-phan.firebaseapp.com",
+    projectId: "uy-phan",
+    storageBucket: "uy-phan.firebasestorage.app",
+    messagingSenderId: "387969382999",
+    appId: "1:387969382999:web:772ccbb251eb4871b28112",
+    measurementId: "G-K6G6Z2XEXD"
+  };
+
+  // Khởi tạo Firebase & Database
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let currentRole = 'sales';
+  let checkins = [];
+
+  // 1. Tự động đồng bộ dữ liệu Cloud theo thời gian thực (Real-time)
+  onSnapshot(collection(db, "checkins"), (snapshot) => {
+    checkins = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Sắp xếp lượt mới nhất lên đầu
+    checkins.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    renderUI();
+  });
+
+  // 2. Ghi nhận Check-in và lưu trực tiếp lên Cloud Firebase
+  window.doCheckin = async function(storeName) {
+    if (!navigator.geolocation) {
+      alert("Trình duyệt không hỗ trợ đo tọa độ GPS");
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        await addDoc(collection(db, "checkins"), {
+          salesName: "Nguyễn Văn An",
+          storeName: storeName,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          createdAt: serverTimestamp()
+        });
+        alert("Đã lưu Check-in thành công lên Cloud!");
+      } catch (e) {
+        alert("Lỗi khi lưu dữ liệu: " + e.message);
+      }
+    }, () => {
+      // Mô phỏng tọa độ ngẫu nhiên nếu thiết bị tắt GPS
+      addDoc(collection(db, "checkins"), {
+        salesName: "Nguyễn Văn An",
+        storeName: storeName,
+        lat: 11.5350 + (Math.random() - 0.5) * 0.01,
+        lng: 106.8980 + (Math.random() - 0.5) * 0.01,
+        createdAt: serverTimestamp()
+      });
+      alert("Đã Check-in quầy (Chế độ mô phỏng GPS)!");
+    });
+  };
+
+  window.switchRole = function(role) {
+    currentRole = role;
+    renderUI();
+  };
+
+  // 3. Hiển thị Giao diện
+  function renderUI() {
+    const main = document.getElementById('mainContent');
+    
+    if (currentRole === 'sales') {
+      main.innerHTML = `
+        <h2>Màn hình Sales Đi Thị Trường</h2>
+        <p style="color:var(--muted);margin-bottom:16px;">Bấm nút để lưu vị trí GPS trực tiếp lên Cloud</p>
+        
+        <div class="card">
+          <h3>Tạp hóa Cô Ba (KH001)</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">12 Phú Riềng Đỏ, Đồng Xoài</p>
+          <button class="btn btn-amber" onclick="doCheckin('Tạp hóa Cô Ba')">📍 Check-in GPS Quầy Này</button>
+        </div>
+
+        <div class="card">
+          <h3>Siêu thị Hồng Phát (KH002)</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">45 Trần Hưng Đạo, Đồng Xoài</p>
+          <button class="btn btn-amber" onclick="doCheckin('Siêu thị Hồng Phát')">📍 Check-in GPS Quầy Này</button>
+        </div>
+      `;
+    } else {
+      main.innerHTML = `
+        <h2>Màn hình Quản Lý (Cloud Real-time)</h2>
+        <p style="color:var(--muted);margin-bottom:16px;">Tự động nhảy số tức thì khi Sales bấm check-in ngoài đường</p>
+        
+        <div>
+          ${checkins.length === 0 ? '<p>Chưa có dữ liệu check-in nào trên Cloud...</p>' : ''}
+          ${checkins.map(item => `
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>👤 ${item.salesName || 'Sales'}</strong>
+                <span class="badge">📍 ${item.lat?.toFixed(4)}, ${item.lng?.toFixed(4)}</span>
+              </div>
+              <div style="margin-top:6px;font-size:14px;">Đã ghé: <strong>${item.storeName}</strong></div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  }
+
+  renderUI();
+</script>
 </head>
 <body>
-<div class="app" id="app"></div>
-<div class="toast" id="toast"></div>
 
-<script>
-const KEYS = { employees:'stt:employees', stores:'stt:stores', routes:'stt:routes', checkins:'stt:checkins', attendance:'stt:attendance', products:'stt:products', orders:'stt:orders' };
-
-const SEED_EMPLOYEES = [
-  {id:'nv1', name:'Nguyễn Văn An', role:'Sales ngoài thị trường', phone:'0901 234 567'},
-  {id:'nv2', name:'Trần Thị Bình', role:'Sales ngoài thị trường', phone:'0902 345 678'},
-  {id:'nv3', name:'Lê Minh Cường', role:'Sales ngoài thị trường', phone:'0903 456 789'},
-];
-
-const SEED_STORES = [
-  {id:'s1', code:'KH001', name:'Tạp hóa Cô Ba', address:'12 Phú Riềng Đỏ, Đồng Xoài', lat:11.5350, lng:106.8980, category:'vip'},
-  {id:'s2', code:'KH002', name:'Siêu thị mini Hồng Phát', address:'45 Trần Hưng Đạo, Đồng Xoài', lat:11.5390, lng:106.9025, category:'vip'},
-  {id:'s3', code:'KH003', name:'Cửa hàng Anh Tuấn', address:'8 Nguyễn Huệ, Đồng Xoài', lat:11.5310, lng:106.8950, category:'normal'},
-  {id:'s4', code:'KH004', name:'Tạp hóa Thanh Thảo', address:'21 Lê Duẩn, Đồng Xoài', lat:11.5420, lng:106.9060, category:'potential'},
-  {id:'s5', code:'KH005', name:'Cửa hàng Bách Hóa Xanh 2', address:'88 ĐT741, Đồng Xoài', lat:11.5280, lng:106.8890, category:'vip'},
-  {id:'s6', code:'KH006', name:'Tạp hóa Hùng Thịnh', address:'102 Trương Công Định, Đồng Xoài', lat:11.5375, lng:106.9110, category:'normal'},
-];
-
-const SEED_PRODUCTS = [
-  {id:'p1', sku:'SP-NG330', name:'Nước ngọt lon 330ml (thùng 24)', price:180000},
-  {id:'p2', sku:'SP-MG30', name:'Mì gói thùng 30 gói', price:120000},
-  {id:'p3', sku:'SP-BQ10', name:'Bánh quy hộp', price:45000},
-  {id:'p4', sku:'SP-NS500', name:'Nước suối 500ml (thùng 24)', price:90000},
-  {id:'p5', sku:'SP-SNK1', name:'Snack khoai tây gói lớn', price:15000},
-];
-
-const SEED_ROUTES = {
-  nv1: ['s1', 's2', 's3', 's4'],
-  nv2: ['s5', 's6'],
-  nv3: []
-};
-
-function getStored(key, seedData) {
-  try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : seedData; } catch(e) { return seedData; }
-}
-function saveStored(key, data) {
-  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e){}
-}
-
-function haversine(lat1,lon1,lat2,lon2){
-  const R=6371000; const toRad=d=>d*Math.PI/180;
-  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
-  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-function fmtTime(ts){ return new Date(ts).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}); }
-function fmtDate(ts){ return new Date(ts).toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}); }
-function fmtVND(n){ return (Number(n)||0).toLocaleString('vi-VN') + 'đ'; }
-function todayKey(){ return new Date().toISOString().slice(0,10); }
-function initials(name){ return name.split(' ').slice(-2).map(w=>w[0]).join('').toUpperCase(); }
-function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function catLabel(cat){ return cat==='vip'?'VIP':cat==='potential'?'Tiềm năng':'Thường'; }
-function outcomeLabel(o){ return {mua:'Đã mua hàng', khong:'Không mua', dong:'Quầy đóng cửa', hen:'Hẹn quay lại'}[o] || ''; }
-function outcomeClass(o){ return {mua:'mua', khong:'khong', dong:'dong', hen:'hen'}[o] || ''; }
-
-function showToast(msg){
-  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2600);
-}
-function getPosition(){
-  return new Promise((resolve,reject)=>{
-    if(!navigator.geolocation){ reject(new Error('no-geo')); return; }
-    navigator.geolocation.getCurrentPosition(
-      pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude}),
-      err=>reject(err), {enableHighAccuracy:true, timeout:10000}
-    );
-  });
-}
-
-let STATE = {
-  screen:'login',
-  currentEmployee:null,
-  managerTab:'dashboard',
-  employees: getStored(KEYS.employees, SEED_EMPLOYEES),
-  stores: getStored(KEYS.stores, SEED_STORES),
-  routes: getStored(KEYS.routes, SEED_ROUTES),
-  checkins: getStored(KEYS.checkins, []),
-  attendance: getStored(KEYS.attendance, []),
-  products: getStored(KEYS.products, SEED_PRODUCTS),
-  orders: getStored(KEYS.orders, []),
-  detailStoreId:null,
-  detailDraft:{outcome:'', note:'', qty:{}},
-  storeFilter:'',
-  productFilter:'',
-};
-
-function todaysCheckins(empId){
-  return STATE.checkins.filter(c=>c.empId===empId && c.time.slice(0,10)===todayKey());
-}
-function todaysAttendance(empId){
-  return STATE.attendance.filter(a=>a.empId===empId && a.time.slice(0,10)===todayKey());
-}
-function empRouteStores(empId){
-  const ids = STATE.routes[empId] || [];
-  return ids.map(id=>STATE.stores.find(s=>s.id===id)).filter(Boolean);
-}
-
-function emptyState(icon, title, desc) {
-  return `
-    <div class="empty-state">
-      <div class="big">${icon}</div>
-      <div style="font-weight:700;font-size:16px;color:var(--navy);margin-bottom:4px;">${esc(title)}</div>
-      <div style="font-size:13px;">${esc(desc)}</div>
-    </div>
-  `;
-}
-
-function exportToCSV() {
-  let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-  csvContent += "Thoi Gian,Nhan Vien,Ma KH,Ten Quay,Ket Qua,Tong Don Hang (VND)\n";
-  STATE.checkins.forEach(c => {
-    const emp = STATE.employees.find(e=>e.id===c.empId)?.name || '';
-    const store = STATE.stores.find(s=>s.id===c.storeId);
-    const order = STATE.orders.find(o=>o.empId===c.empId && o.storeId===c.storeId && o.time.slice(0,10)===c.time.slice(0,10));
-    csvContent += `"${c.time}","${emp}","${store?.code||''}","${store?.name||''}","${outcomeLabel(c.outcome)}","${order?.total||0}"\n`;
-  });
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `bao_cao_tuyen_${todayKey()}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function render(){
-  const app = document.getElementById('app');
-  app.innerHTML = topbarHtml() + '<div class="panel">' + bodyHtml() + '</div>' + footerHtml();
-  bindEvents();
-}
-
-function topbarHtml(){
-  let who = '';
-  if(STATE.screen==='employee' && STATE.currentEmployee){
-    who = `<div class="who"><span>${esc(STATE.currentEmployee.name)}</span><button class="btn-ghost" data-action="logout">Đăng xuất</button></div>`;
-  } else if(STATE.screen==='manager'){
-    who = `<div class="who"><span>Quản lý tuyến</span><button class="btn-ghost" data-action="logout">Đăng xuất</button></div>`;
-  }
-  return `
+<div class="app">
   <div class="topbar">
-    <div class="brand">
-      <div class="brand-mark">TT</div>
-      <div class="brand-text">
-        <div class="t1">Tuyến Thị Trường</div>
-        <div class="t2">Quản lý sales ngoài thị trường</div>
-      </div>
+    <div>
+      <h1>Tuyến Thị Trường</h1>
+      <div class="status-online"><span class="status-dot"></span> Đã kết nối Firebase: uy-phan</div>
     </div>
-    ${who}
-  </div>`;
-}
-
-function footerHtml(){
-  return `<div class="footer-note">Dữ liệu tự động lưu trữ trên Trình duyệt (LocalStorage).</div>`;
-}
-
-function bodyHtml(){
-  if(STATE.screen==='login') return loginHtml();
-  if(STATE.screen==='employee') return employeeHtml();
-  if(STATE.screen==='manager') return managerHtml();
-  return '';
-}
-
-function loginHtml(){
-  return `
-  <div class="login-wrap">
-    <h2>Đăng nhập Hệ Thống</h2>
-    <div class="login-sub">Chọn vai trò làm việc để bắt đầu thao tác</div>
-    <div class="role-grid">
-      <div class="role-card" data-action="pick-role" data-role="employee">
-        <div class="icon">🧭</div>
-        <div class="rt">Nhân viên Sales</div>
-        <div class="rd">Xem tuyến, ghé quầy có GPS, ghi kết quả & đặt hàng</div>
-      </div>
-      <div class="role-card" data-action="pick-role" data-role="manager">
-        <div class="icon">📋</div>
-        <div class="rt">Quản lý tuyến</div>
-        <div class="rd">Phân tuyến, chỉnh sửa Mã KH/SKU, xuất báo cáo</div>
-      </div>
+    <div>
+      <button class="btn" onclick="switchRole('sales')">Màn hình Sales</button>
+      <button class="btn btn-amber" onclick="switchRole('manager')">Màn hình Quản lý</button>
     </div>
-    <div id="loginSub"></div>
-  </div>`;
-}
+  </div>
 
-function employeePickHtml(){
-  return `
-    <div class="emp-list">
-      ${STATE.employees.map(e=>`
-        <div class="emp-row" data-action="login-employee" data-id="${e.id}">
-          <div class="avatar">${initials(e.name)}</div>
-          <div>
-            <div class="en">${esc(e.name)}</div>
-            <div class="er">${esc(e.role)} — ${esc(e.phone)}</div>
-          </div>
-        </div>`).join('')}
-    </div>
-    <div class="back-link" data-action="back-role">← Quay lại chọn vai trò</div>
-  `;
-}
+  <div class="panel">
+    <div id="mainContent">Đang kết nối Cloud Database...</div>
+  </div>
+</div>
 
-function employeeHtml(){
-  const emp = STATE.currentEmployee;
-  const stores = empRouteStores(emp.id);
-  const checkins = todaysCheckins(emp.id);
-  const visitedIds = new Set(checkins.map(c=>c.storeId));
-  const attend = todaysAttendance(emp.id);
-  const lastAttend = attend[attend.length-1];
-  const isShiftOn = lastAttend && lastAttend.type==='in';
-
-  return `
-    <div class="section-head">
-      <div>
-        <h2>Xin chào, ${esc(emp.name)}</h2>
-        <div class="sub">${fmtDate(Date.now())}</div>
-      </div>
-    </div>
-
-    <div class="attend-box">
-      <div>
-        <div class="a-label">Trạng thái ca làm việc</div>
-        <div class="a-time">${isShiftOn ? 'Đang trong ca' : 'Chưa vào ca'}</div>
-        <div class="a-status">${lastAttend ? (lastAttend.type==='in'?'Vào ca lúc '+fmtTime(lastAttend.time):'Tan ca lúc '+fmtTime(lastAttend.time)) : 'Chưa điểm danh hôm nay'}</div>
-      </div>
-      <button class="btn-primary ${isShiftOn?'':'btn-amber'}" data-action="toggle-shift">
-        ${isShiftOn ? 'Tan ca làm' : 'Vào ca làm'}
-      </button>
-    </div>
-
-    <div class="section-head">
-      <div>
-        <h2 style="font-size:16px;">Tuyến quầy hôm nay</h2>
-        <div class="sub">${visitedIds.size}/${stores.length} quầy đã hoàn thành</div>
-      </div>
-    </div>
-    ${stores.length ? `
-      <div class="progress-bar" style="margin-bottom:16px;">
-        <div class="progress-fill" style="width:${stores.length? (visitedIds.size/stores.length*100):0}%"></div>
-      </div>` : ''}
-
-    <div class="manifest">
-      ${stores.length===0 ? emptyState('🗺️','Chưa có tuyến được phân','Vui lòng liên hệ quản lý để phân tuyến cho tài khoản này.') :
-        stores.map((s,i)=>{
-          const c = checkins.find(c=>c.storeId===s.id);
-          const isOpen = STATE.detailStoreId===s.id;
-          const visitOrders = STATE.orders.filter(o=>o.empId===emp.id && o.storeId===s.id && o.time.slice(0,10)===todayKey());
-          const orderTotal = visitOrders.reduce((sum,o)=>sum+o.total,0);
-          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
-
-          return `
-          <div class="ticket ${c?'visited':''}">
-            <div class="ticket-stub"><span class="num">${String(i+1).padStart(2,'0')}</span><span>QUẦY</span></div>
-            <div class="perforation"></div>
-            <div class="ticket-main">
-              ${c?`<div class="stamp">Đã ghé</div>`:''}
-              <div class="t-name">
-                <span class="code-badge">${esc(s.code||'KH---')}</span>
-                ${esc(s.name)} 
-                <span class="cat-chip ${s.category||'normal'}" style="margin-left:6px;">${catLabel(s.category)}</span>
-              </div>
-              <div class="t-addr">📍 ${esc(s.address)}</div>
-              <div class="t-meta">
-                ${c ? `<span>🕒 Ghé lúc: ${fmtTime(c.time)}</span><span>📍 Khoảng cách GPS: ${Math.round(c.distance)}m</span>${orderTotal? `<span>💰 Đơn: ${fmtVND(orderTotal)}</span>`:''}` : `<span>Trạng thái: Chưa ghé</span>`}
-              </div>
-              ${c && c.outcome ? `<div class="outcome-tag ${outcomeClass(c.outcome)}">${outcomeLabel(c.outcome)}</div>` : ''}
-              ${c && c.note ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;">📝 ${esc(c.note)}</div>` : ''}
-              <div class="t-actions">
-                ${!c ? `<button class="btn-amber btn-primary" data-action="checkin" data-store="${s.id}">Ghé quầy (GPS)</button>` : 
-                       `<button class="btn-outline" data-action="toggle-detail" data-store="${s.id}">${isOpen? 'Đóng' : 'Sửa kết quả / Đặt hàng'}</button>`}
-                <a href="${mapsUrl}" target="_blank" rel="noopener" class="btn-outline" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🗺️ Chỉ đường</a>
-              </div>
-              ${isOpen ? detailPanelHtml(s, emp) : ''}
-            </div>
-          </div>`;
-        }).join('')
-      }
-    </div>
-  `;
-}
-
-function detailPanelHtml(store, emp){
-  const d = STATE.detailDraft;
-  const total = STATE.products.reduce((sum,p)=> sum + (Number(d.qty[p.id])||0)*p.price, 0);
-  return `
-    <div class="detail-panel">
-      <div>
-        <div class="field-label">Ghi nhận kết quả cuộc ghé</div>
-        <select data-action="detail-outcome">
-          <option value="" ${!d.outcome?'selected':''}>— Chọn kết quả —</option>
-          <option value="mua" ${d.outcome==='mua'?'selected':''}>Đã mua hàng</option>
-          <option value="khong" ${d.outcome==='khong'?'selected':''}>Không mua</option>
-          <option value="dong" ${d.outcome==='dong'?'selected':''}>Quầy đóng cửa</option>
-          <option value="hen" ${d.outcome==='hen'?'selected':''}>Hẹn quay lại sau</option>
-        </select>
-      </div>
-      <div>
-        <div class="field-label">Ghi chú phản hồi của chủ quầy</div>
-        <textarea id="detail-note" placeholder="Nhập chi tiết ý kiến khách hàng...">${esc(d.note)}</textarea>
-      </div>
-      <div>
-        <div class="field-label">Lên đơn hàng trực tiếp (nếu có)</div>
-        <div class="qty-list">
-          ${STATE.products.map(p=>`
-            <div class="qty-row">
-              <div class="pinfo">
-                <span class="pname">${esc(p.name)}</span>
-                <span class="psku">SKU: ${esc(p.sku||'SP---')}</span>
-              </div>
-              <span class="pprice">${fmtVND(p.price)}</span>
-              <input type="number" min="0" data-pid="${p.id}" class="order-qty-input" value="${d.qty[p.id]||''}" placeholder="0">
-            </div>`).join('')}
-        </div>
-        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
-          <span class="field-label" style="margin:0;">Giá trị đơn hàng:</span>
-          <span class="order-total" id="order-total-live">${fmtVND(total)}</span>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:6px;">
-        <button class="btn-primary" data-action="save-detail" data-store="${store.id}" data-emp="${emp.id}">Lưu báo cáo & Đơn hàng</button>
-        <button class="btn-text" data-action="toggle-detail" data-store="${store.id}">Đóng</button>
-      </div>
-    </div>
-  `;
-}
-
-function managerHtml(){
-  const tabs = [
-    {id:'dashboard', label:'Bảng điều khiển'},
-    {id:'routes', label:'Chia tuyến Sales'},
-    {id:'stores', label:'Danh sách Quầy (Mã KH)'},
-    {id:'products', label:'Danh mục SP (Mã SKU)'},
-  ];
-  return `
-    <div class="tabs">
-      ${tabs.map(t=>`<div class="tab ${STATE.managerTab===t.id?'active':''}" data-action="mtab" data-tab="${t.id}">${t.label}</div>`).join('')}
-    </div>
-    ${STATE.managerTab==='dashboard'? dashboardHtml() : ''}
-    ${STATE.managerTab==='routes'? managerRoutesHtml() : ''}
-    ${STATE.managerTab==='stores'? managerStoresHtml() : ''}
-    ${STATE.managerTab==='products'? managerProductsHtml() : ''}
-  `;
-}
-
-function dashboardHtml(){
-  const totalEmp = STATE.employees.length;
-  let totalVisited=0, onShift=0;
-  STATE.employees.forEach(e=>{
-    totalVisited += todaysCheckins(e.id).length;
-    const att = todaysAttendance(e.id);
-    const last = att[att.length-1];
-    if(last && last.type==='in') onShift++;
-  });
-  const todayOrders = STATE.orders.filter(o=>o.time.slice(0,10)===todayKey());
-  const totalRevenue = todayOrders.reduce((s,o)=>s+o.total,0);
-
-  return `
-    <div class="section-head">
-      <div><h2>Tổng quan hoạt động hôm nay</h2><div class="sub">${fmtDate(Date.now())}</div></div>
-      <button class="btn-outline" data-action="export-csv">📥 Xuất Báo Cáo CSV</button>
-    </div>
-    <div class="kpis">
-      <div class="kpi"><div class="v">${totalEmp}</div><div class="l">Nhân viên</div></div>
-      <div class="kpi amber"><div class="v">${onShift}</div><div class="l">Đang làm việc</div></div>
-      <div class="kpi green"><div class="v">${totalVisited}</div><div class="l">Lượt ghé quầy</div></div>
-      <div class="kpi green"><div class="v">${fmtVND(totalRevenue)}</div><div class="l">Tổng doanh số</div></div>
-    </div>
-
-    <div class="card">
-      <h3>Báo cáo tiến độ Nhân viên</h3>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Nhân viên</th>
-            <th>Trạng thái ca</th>
-            <th>Tiến độ tuyến</th>
-            <th>Đơn hàng</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${STATE.employees.map(e=>{
-            const route = empRouteStores(e.id);
-            const checkins = todaysCheckins(e.id);
-            const att = todaysAttendance(e.id);
-            const lastAtt = att[att.length-1];
-            const empOrders = todayOrders.filter(o=>o.empId===e.id);
-            const empTotal = empOrders.reduce((s,o)=>s+o.total,0);
-
-            return `
-              <tr>
-                <td><strong>${esc(e.name)}</strong><br><span style="font-size:11px;color:var(--muted);">${esc(e.phone)}</span></td>
-                <td>${lastAtt && lastAtt.type==='in' ? '<span style="color:var(--green);font-weight:700;">Đang làm</span>' : '<span style="color:var(--muted);">Nghỉ ca</span>'}</td>
-                <td>${checkins.length} / ${route.length} quầy</td>
-                <td><strong>${fmtVND(empTotal)}</strong> (${empOrders.length} đơn)</td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-function managerRoutesHtml(){
-  return `
-    <div class="section-head">
-      <div><h2>Phân tuyến cho Nhân viên</h2><div class="sub">Gán danh sách các quầy khách hàng cho từng Sales</div></div>
-    </div>
-    <div class="grid-2">
-      ${STATE.employees.map(emp=>{
-        const assignedIds = STATE.routes[emp.id] || [];
-        return `
-          <div class="card">
-            <h3>👤 ${esc(emp.name)}</h3>
-            <div class="field-label">Chọn quầy thuộc tuyến:</div>
-            <div style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;border:1px solid var(--line);padding:8px;border-radius:8px;background:#fff;">
-              ${STATE.stores.map(s=>`
-                <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-                  <input type="checkbox" data-action="route-toggle" data-emp="${emp.id}" data-store="${s.id}" ${assignedIds.includes(s.id)?'checked':''}>
-                  <span class="code-badge">${esc(s.code||'KH---')}</span>
-                  <span>${esc(s.name)}</span>
-                </label>
-              `).join('')}
-            </div>
-            <div style="font-size:12px;color:var(--muted);margin-top:8px;">Đã gán: <strong>${assignedIds.length}</strong> quầy</div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-}
-
-function managerStoresHtml(){
-  const filtered = STATE.stores.filter(s=> 
-    (s.name + s.code + s.address).toLowerCase().includes((STATE.storeFilter||'').toLowerCase())
-  );
-
-  return `
-    <div class="section-head">
-      <div><h2>Danh sách Quầy / Mã Khách Hàng</h2><div class="sub">Quản lý toàn bộ danh sách điểm bán và tọa độ GPS</div></div>
-      <button class="btn-primary" data-action="add-store-prompt">+ Thêm Quầy Mới</button>
-    </div>
-
-    <div style="display:flex;gap:10px;margin-bottom:14px;">
-      <input type="text" id="searchStore" placeholder="🔍 Tìm theo Mã KH, tên quầy, địa chỉ..." value="${esc(STATE.storeFilter)}">
-    </div>
-
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Mã KH</th>
-          <th>Tên Quầy / Khách hàng</th>
-          <th>Địa chỉ</th>
-          <th>Phân loại</th>
-          <th>Tọa độ GPS</th>
-          <th style="text-align:right;">Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${filtered.map(s=>`
-          <tr>
-            <td><span class="code-badge">${esc(s.code||'KH---')}</span></td>
-            <td><strong>${esc(s.name)}</strong></td>
-            <td>${esc(s.address)}</td>
-            <td><span class="cat-chip ${s.category||'normal'}">${catLabel(s.category)}</span></td>
-            <td class="mono" style="font-size:11px;">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</td>
-            <td style="text-align:right;">
-              <button class="btn-sm-edit" data-action="edit-store" data-id="${s.id}">Sửa</button>
-              <button class="btn-sm-danger" data-action="delete-store" data-id="${s.id}">Xóa</button>
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
-}
-
-function managerProductsHtml(){
-  const filtered = STATE.products.filter(p=> 
-    (p.name + p.sku).toLowerCase().includes((STATE.productFilter||'').toLowerCase())
-  );
-
-  return `
-    <div class="section-head">
-      <div><h2>Danh mục Sản phẩm / Mã SKU</h2><div class="sub">Quản lý danh sách mặt hàng và đơn giá chuẩn</div></div>
-      <button class="btn-primary" data-action="add-product-prompt">+ Thêm Sản Phẩm</button>
-    </div>
-
-    <div style="display:flex;gap:10px;margin-bottom:14px;">
-      <input type="text" id="searchProduct" placeholder="🔍 Tìm theo Mã SKU, tên sản phẩm..." value="${esc(STATE.productFilter)}">
-    </div>
-
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Mã SKU</th>
-          <th>Tên sản phẩm</th>
-          <th>Đơn giá</th>
-          <th style="text-align:right;">Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${filtered.map(p=>`
-          <tr>
-            <td><span class="code-badge">${esc(p.sku||'SP---')}</span></td>
-            <td><strong>${esc(p.name)}</strong></td>
-            <td class="mono"><strong>${fmtVND(p.price)}</strong></td>
-            <td style="text-align:right;">
-              <button class="btn-sm-edit" data-action="edit-product" data-id="${p.id}">Sửa</button>
-              <button class="btn-sm-danger" data-action="delete-product" data-id="${p.id}">Xóa</button>
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
-}
-
-function bindEvents(){
-  document.querySelectorAll('[data-action]').forEach(el=>{
-    el.onclick = (e)=>{
-      const act = el.getAttribute('data-action');
-      
-      if(act==='pick-role'){
-        const role = el.getAttribute('data-role');
-        if(role==='employee'){
-          document.getElementById('loginSub').innerHTML = employeePickHtml();
-          bindEvents();
-        } else {
-          STATE.screen = 'manager';
-          render();
-        }
-      }
-      if(act==='back-role'){
-        document.getElementById('loginSub').innerHTML = '';
-      }
-      if(act==='login-employee'){
-        const id = el.getAttribute('data-id');
-        STATE.currentEmployee = STATE.employees.find(e=>e.id===id);
-        STATE.screen = 'employee';
-        render();
-      }
-      if(act==='logout'){
-        STATE.screen = 'login';
-        STATE.currentEmployee = null;
-        render();
-      }
-      if(act==='mtab'){
-        STATE.managerTab = el.getAttribute('data-tab');
-        render();
-      }
-      if(act==='toggle-shift'){
-        const empId = STATE.currentEmployee.id;
-        const attend = todaysAttendance(empId);
-        const last = attend[attend.length-1];
-        const nextType = (last && last.type==='in') ? 'out' : 'in';
-        STATE.attendance.push({
-          empId, time: new Date().toISOString(), type: nextType
-        });
-        saveStored(KEYS.attendance, STATE.attendance);
-        showToast(nextType==='in'?'Đã ghi nhận VÀO CA':'Đã ghi nhận TAN CA');
-        render();
-      }
-      if(act==='checkin'){
-        const storeId = el.getAttribute('data-store');
-        const store = STATE.stores.find(s=>s.id===storeId);
-        showToast('Đang lấy vị trí GPS...');
-        getPosition().then(pos=>{
-          const dist = haversine(pos.lat, pos.lng, store.lat, store.lng);
-          STATE.checkins.push({
-            empId: STATE.currentEmployee.id,
-            storeId: storeId,
-            time: new Date().toISOString(),
-            distance: dist,
-            outcome:'', note:''
-          });
-          saveStored(KEYS.checkins, STATE.checkins);
-          showToast(`Ghé quầy thành công! Khách cách ${Math.round(dist)}m`);
-          render();
-        }).catch(()=>{
-          // Fallback demo nếu GPS không mở
-          const dist = Math.floor(Math.random()*80) + 10;
-          STATE.checkins.push({
-            empId: STATE.currentEmployee.id,
-            storeId: storeId,
-            time: new Date().toISOString(),
-            distance: dist,
-            outcome:'', note:''
-          });
-          saveStored(KEYS.checkins, STATE.checkins);
-          showToast(`Đã ghé quầy (Mô phỏng GPS: cách ${dist}m)`);
-          render();
-        });
-      }
-      if(act==='toggle-detail'){
-        const sId = el.getAttribute('data-store');
-        if(STATE.detailStoreId === sId){
-          STATE.detailStoreId = null;
-        } else {
-          STATE.detailStoreId = sId;
-          const existing = STATE.checkins.find(c=>c.storeId===sId && c.empId===STATE.currentEmployee.id && c.time.slice(0,10)===todayKey());
-          STATE.detailDraft = {
-            outcome: existing?.outcome || '',
-            note: existing?.note || '',
-            qty: {}
-          };
-        }
-        render();
-      }
-      if(act==='save-detail'){
-        const storeId = el.getAttribute('data-store');
-        const empId = el.getAttribute('data-emp');
-        const c = STATE.checkins.find(c=>c.storeId===storeId && c.empId===empId && c.time.slice(0,10)===todayKey());
-        if(c){
-          c.outcome = STATE.detailDraft.outcome;
-          c.note = document.getElementById('detail-note').value;
-          saveStored(KEYS.checkins, STATE.checkins);
-        }
-        
-        let total = 0;
-        const items = [];
-        Object.keys(STATE.detailDraft.qty).forEach(pid=>{
-          const q = Number(STATE.detailDraft.qty[pid]);
-          if(q > 0){
-            const p = STATE.products.find(prod=>prod.id===pid);
-            if(p){
-              items.push({pid, qty:q, price:p.price});
-              total += q * p.price;
-            }
-          }
-        });
-
-        if(total > 0){
-          STATE.orders.push({
-            id:'ord_'+Date.now(),
-            empId, storeId,
-            time: new Date().toISOString(),
-            items, total
-          });
-          saveStored(KEYS.orders, STATE.orders);
-        }
-
-        showToast('Đã lưu kết quả & đơn hàng thành công!');
-        STATE.detailStoreId = null;
-        render();
-      }
-      if(act==='export-csv'){
-        exportToCSV();
-      }
-      if(act==='add-store-prompt'){
-        const code = prompt('Mã KH mới (ví dụ KH007):');
-        if(!code) return;
-        const name = prompt('Tên Quầy / Khách hàng:');
-        if(!name) return;
-        const address = prompt('Địa chỉ Quầy:');
-        const lat = parseFloat(prompt('Tọa độ Latitude (vĩ độ):', '11.5350')) || 11.5350;
-        const lng = parseFloat(prompt('Tọa độ Longitude (kinh độ):', '106.8980')) || 106.8980;
-        
-        const newStore = { id:'s_'+Date.now(), code, name, address: address||'', lat, lng, category:'normal' };
-        STATE.stores.push(newStore);
-        saveStored(KEYS.stores, STATE.stores);
-        showToast('Đã thêm quầy mới!');
-        render();
-      }
-      if(act==='edit-store'){
-        const id = el.getAttribute('data-id');
-        const s = STATE.stores.find(x=>x.id===id);
-        if(!s) return;
-        const name = prompt('Sửa tên quầy:', s.name);
-        if(name!==null) s.name = name;
-        const code = prompt('Sửa Mã KH:', s.code||'');
-        if(code!==null) s.code = code;
-        const addr = prompt('Sửa địa chỉ:', s.address||'');
-        if(addr!==null) s.address = addr;
-        saveStored(KEYS.stores, STATE.stores);
-        render();
-      }
-      if(act==='delete-store'){
-        const id = el.getAttribute('data-id');
-        if(confirm('Bạn có chắc chắn muốn xóa quầy này khỏi hệ thống?')){
-          STATE.stores = STATE.stores.filter(s=>s.id!==id);
-          saveStored(KEYS.stores, STATE.stores);
-          render();
-        }
-      }
-      if(act==='add-product-prompt'){
-        const sku = prompt('Mã SKU mới (ví dụ SP-NEW):');
-        if(!sku) return;
-        const name = prompt('Tên sản phẩm:');
-        if(!name) return;
-        const price = parseInt(prompt('Đơn giá (VNĐ):', '100000'), 10) || 0;
-        
-        const newProd = { id:'p_'+Date.now(), sku, name, price };
-        STATE.products.push(newProd);
-        saveStored(KEYS.products, STATE.products);
-        showToast('Đã thêm sản phẩm mới!');
-        render();
-      }
-      if(act==='edit-product'){
-        const id = el.getAttribute('data-id');
-        const p = STATE.products.find(x=>x.id===id);
-        if(!p) return;
-        const name = prompt('Sửa tên sản phẩm:', p.name);
-        if(name!==null) p.name = name;
-        const sku = prompt('Sửa Mã SKU:', p.sku||'');
-        if(sku!==null) p.sku = sku;
-        const price = prompt('Sửa đơn giá (VNĐ):', p.price);
-        if(price!==null) p.price = Number(price)||0;
-        saveStored(KEYS.products, STATE.products);
-        render();
-      }
-      if(act==='delete-product'){
-        const id = el.getAttribute('data-id');
-        if(confirm('Xóa sản phẩm này khỏi danh mục?')){
-          STATE.products = STATE.products.filter(p=>p.id!==id);
-          saveStored(KEYS.products, STATE.products);
-          render();
-        }
-      }
-    };
-  });
-
-  document.querySelectorAll('[data-action="detail-outcome"]').forEach(s=>{
-    s.onchange = (e)=>{ STATE.detailDraft.outcome = e.target.value; };
-  });
-
-  document.querySelectorAll('.order-qty-input').forEach(inp=>{
-    inp.oninput = (e)=>{
-      const pid = inp.getAttribute('data-pid');
-      STATE.detailDraft.qty[pid] = e.target.value;
-      const total = STATE.products.reduce((sum,p)=> sum + (Number(STATE.detailDraft.qty[p.id])||0)*p.price, 0);
-      const liveTot = document.getElementById('order-total-live');
-      if(liveTot) liveTot.textContent = fmtVND(total);
-    };
-  });
-
-  document.querySelectorAll('[data-action="route-toggle"]').forEach(chk=>{
-    chk.onchange = (e)=>{
-      const empId = chk.getAttribute('data-emp');
-      const storeId = chk.getAttribute('data-store');
-      if(!STATE.routes[empId]) STATE.routes[empId] = [];
-      
-      if(e.target.checked){
-        if(!STATE.routes[empId].includes(storeId)) STATE.routes[empId].push(storeId);
-      } else {
-        STATE.routes[empId] = STATE.routes[empId].filter(id=>id!==storeId);
-      }
-      saveStored(KEYS.routes, STATE.routes);
-      render();
-    };
-  });
-
-  const searchS = document.getElementById('searchStore');
-  if(searchS){
-    searchS.oninput = (e)=>{
-      STATE.storeFilter = e.target.value;
-      render();
-      const sBox = document.getElementById('searchStore');
-      if(sBox){ sBox.focus(); sBox.setSelectionRange(sBox.value.length, sBox.value.length); }
-    };
-  }
-
-  const searchP = document.getElementById('searchProduct');
-  if(searchP){
-    searchP.oninput = (e)=>{
-      STATE.productFilter = e.target.value;
-      render();
-      const pBox = document.getElementById('searchProduct');
-      if(pBox){ pBox.focus(); pBox.setSelectionRange(pBox.value.length, pBox.value.length); }
-    };
-  }
-}
-
-render();
-</script>
 </body>
 </html>
