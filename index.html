@@ -87,11 +87,13 @@
   select,input[type=text],input[type=number],textarea{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);font-family:'Inter';font-size:14px;background:#fff;}
   textarea{resize:vertical;min-height:64px;}
 
-  .btn-primary{background:var(--navy);color:var(--paper);border:none;padding:11px 18px;border-radius:999px;font-weight:700;font-size:13.5px;cursor:pointer;text-transform:uppercase;}
+  .btn-primary{background:var(--navy);color:var(--paper);border:none;padding:9px 16px;border-radius:999px;font-weight:700;font-size:13px;cursor:pointer;text-transform:uppercase;}
   .btn-primary:hover{background:var(--navy2);}
   .btn-amber{background:var(--amber);color:var(--navy);}
   .btn-amber:hover{background:var(--amber-dark);color:#fff;}
-  .btn-outline{background:transparent;border:1.5px solid var(--navy);color:var(--navy);padding:8px 14px;border-radius:999px;font-weight:700;font-size:12.5px;cursor:pointer;}
+  .btn-outline{background:transparent;border:1.5px solid var(--navy);color:var(--navy);padding:7px 14px;border-radius:999px;font-weight:700;font-size:12px;cursor:pointer;}
+  .btn-sm-danger{background:var(--red-bg);color:var(--red);border:1px solid var(--red);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;}
+  .btn-sm-edit{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;margin-right:4px;}
   .btn-text{background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;text-decoration:underline;padding:0;}
 
   .progress-bar{height:8px;background:var(--line);border-radius:999px;overflow:hidden;}
@@ -149,7 +151,6 @@
 <script>
 const KEYS = { employees:'stt:employees', stores:'stt:stores', routes:'stt:routes', checkins:'stt:checkins', attendance:'stt:attendance', products:'stt:products', orders:'stt:orders' };
 
-// Seed Data ĐẦY ĐỦ ban đầu + Bổ sung Mã KH (code) & Mã SP (sku)
 const SEED_EMPLOYEES = [
   {id:'nv1', name:'Nguyễn Văn An', role:'Sales ngoài thị trường', phone:'0901 234 567'},
   {id:'nv2', name:'Trần Thị Bình', role:'Sales ngoài thị trường', phone:'0902 345 678'},
@@ -230,6 +231,7 @@ let STATE = {
   detailStoreId:null,
   detailDraft:{outcome:'', note:'', qty:{}},
   storeFilter:'',
+  productFilter:'',
 };
 
 function todaysCheckins(empId){
@@ -241,6 +243,24 @@ function todaysAttendance(empId){
 function empRouteStores(empId){
   const ids = STATE.routes[empId] || [];
   return ids.map(id=>STATE.stores.find(s=>s.id===id)).filter(Boolean);
+}
+
+function exportToCSV() {
+  let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+  csvContent += "Thoi Gian,Nhan Vien,Ma KH,Ten Quay,Ket Qua,Tong Don Hang (VND)\n";
+  STATE.checkins.forEach(c => {
+    const emp = STATE.employees.find(e=>e.id===c.empId)?.name || '';
+    const store = STATE.stores.find(s=>s.id===c.storeId);
+    const order = STATE.orders.find(o=>o.empId===c.empId && o.storeId===c.storeId && o.time.slice(0,10)===c.time.slice(0,10));
+    csvContent += `"${c.time}","${emp}","${store?.code||''}","${store?.name||''}","${outcomeLabel(c.outcome)}","${order?.total||0}"\n`;
+  });
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `bao_cao_tuyen_${todayKey()}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 function render(){
@@ -270,7 +290,7 @@ function topbarHtml(){
 }
 
 function footerHtml(){
-  return `<div class="footer-note">Dữ liệu thử nghiệm tự động lưu vào Trình duyệt (LocalStorage).</div>`;
+  return `<div class="footer-note">Dữ liệu tự động lưu trữ trên Trình duyệt (LocalStorage).</div>`;
 }
 
 function bodyHtml(){
@@ -294,7 +314,7 @@ function loginHtml(){
       <div class="role-card" data-action="pick-role" data-role="manager">
         <div class="icon">📋</div>
         <div class="rt">Quản lý tuyến</div>
-        <div class="rd">Phân tuyến, quản lý Mã KH/Mã SP, xem báo cáo</div>
+        <div class="rd">Phân tuyến, chỉnh sửa Mã KH/SKU, xuất báo cáo</div>
       </div>
     </div>
     <div id="loginSub"></div>
@@ -378,7 +398,7 @@ function employeeHtml(){
               </div>
               <div class="t-addr">📍 ${esc(s.address)}</div>
               <div class="t-meta">
-                ${c ? `<span>🕒 Ghé lúc: ${fmtTime(c.time)}</span><span>📍 Cách quầy: ${Math.round(c.distance)}m</span>${orderTotal? `<span>💰 Đơn: ${fmtVND(orderTotal)}</span>`:''}` : `<span>Trạng thái: Chưa ghé</span>`}
+                ${c ? `<span>🕒 Ghé lúc: ${fmtTime(c.time)}</span><span>📍 Khoảng cách GPS: ${Math.round(c.distance)}m</span>${orderTotal? `<span>💰 Đơn: ${fmtVND(orderTotal)}</span>`:''}` : `<span>Trạng thái: Chưa ghé</span>`}
               </div>
               ${c && c.outcome ? `<div class="outcome-tag ${outcomeClass(c.outcome)}">${outcomeLabel(c.outcome)}</div>` : ''}
               ${c && c.note ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;">📝 ${esc(c.note)}</div>` : ''}
@@ -422,7 +442,7 @@ function detailPanelHtml(store, emp){
             <div class="qty-row">
               <div class="pinfo">
                 <span class="pname">${esc(p.name)}</span>
-                <span class="psku">Mã SP: ${esc(p.sku||'SP---')}</span>
+                <span class="psku">SKU: ${esc(p.sku||'SP---')}</span>
               </div>
               <span class="pprice">${fmtVND(p.price)}</span>
               <input type="number" min="0" data-pid="${p.id}" class="order-qty-input" value="${d.qty[p.id]||''}" placeholder="0">
@@ -446,7 +466,7 @@ function managerHtml(){
     {id:'dashboard', label:'Bảng điều khiển'},
     {id:'routes', label:'Chia tuyến Sales'},
     {id:'stores', label:'Danh sách Quầy (Mã KH)'},
-    {id:'products', label:'Danh mục SP (Mã SP)'},
+    {id:'products', label:'Danh mục SP (Mã SKU)'},
   ];
   return `
     <div class="tabs">
@@ -474,6 +494,7 @@ function dashboardHtml(){
   return `
     <div class="section-head">
       <div><h2>Tổng quan hoạt động hôm nay</h2><div class="sub">${fmtDate(Date.now())}</div></div>
+      <button class="btn-outline" data-action="export-csv">📥 Xuất Báo Cáo CSV</button>
     </div>
     <div class="kpis">
       <div class="kpi"><div class="v">${totalEmp}</div><div class="l">Nhân viên</div></div>
@@ -554,11 +575,11 @@ function managerStoresHtml(){
   return `
     <div class="section-head">
       <div><h2>Danh sách Quầy / Mã Khách Hàng</h2><div class="sub">Quản lý toàn bộ danh sách điểm bán và tọa độ GPS</div></div>
+      <button class="btn-primary" data-action="add-store-prompt">+ Thêm Quầy Mới</button>
     </div>
 
     <div style="display:flex;gap:10px;margin-bottom:14px;">
       <input type="text" id="searchStore" placeholder="🔍 Tìm theo Mã KH, tên quầy, địa chỉ..." value="${esc(STATE.storeFilter)}">
-      <button class="btn-primary" data-action="add-store-prompt">+ Thêm Quầy</button>
     </div>
 
     <table class="data-table">
@@ -569,6 +590,7 @@ function managerStoresHtml(){
           <th>Địa chỉ</th>
           <th>Phân loại</th>
           <th>Tọa độ GPS</th>
+          <th style="text-align:right;">Thao tác</th>
         </tr>
       </thead>
       <tbody>
@@ -579,6 +601,10 @@ function managerStoresHtml(){
             <td>${esc(s.address)}</td>
             <td><span class="cat-chip ${s.category||'normal'}">${catLabel(s.category)}</span></td>
             <td class="mono" style="font-size:11px;">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</td>
+            <td style="text-align:right;">
+              <button class="btn-sm-edit" data-action="edit-store" data-id="${s.id}">Sửa</button>
+              <button class="btn-sm-danger" data-action="delete-store" data-id="${s.id}">Xóa</button>
+            </td>
           </tr>
         `).join('')}
       </tbody>
@@ -587,26 +613,39 @@ function managerStoresHtml(){
 }
 
 function managerProductsHtml(){
+  const filtered = STATE.products.filter(p=> 
+    (p.name + p.sku).toLowerCase().includes((STATE.productFilter||'').toLowerCase())
+  );
+
   return `
     <div class="section-head">
       <div><h2>Danh mục Sản phẩm / SKU</h2><div class="sub">Quản lý danh sách hàng hóa và đơn giá bán</div></div>
-      <button class="btn-primary" data-action="add-product-prompt">+ Thêm SP mới</button>
+      <button class="btn-primary" data-action="add-product-prompt">+ Thêm SP Mới</button>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:14px;">
+      <input type="text" id="searchProduct" placeholder="🔍 Tìm theo Mã SKU, tên sản phẩm..." value="${esc(STATE.productFilter)}">
     </div>
 
     <table class="data-table">
       <thead>
         <tr>
-          <th>Mã SP (SKU)</th>
+          <th>Mã SKU</th>
           <th>Tên Mặt Hàng / Sản phẩm</th>
           <th>Đơn Giá Bán</th>
+          <th style="text-align:right;">Thao tác</th>
         </tr>
       </thead>
       <tbody>
-        ${STATE.products.map(p=>`
+        ${filtered.map(p=>`
           <tr>
             <td><span class="code-badge">${esc(p.sku||'SP---')}</span></td>
             <td><strong>${esc(p.name)}</strong></td>
             <td class="mono" style="font-weight:700;color:var(--navy);">${fmtVND(p.price)}</td>
+            <td style="text-align:right;">
+              <button class="btn-sm-edit" data-action="edit-product" data-id="${p.id}">Sửa</button>
+              <button class="btn-sm-danger" data-action="delete-product" data-id="${p.id}">Xóa</button>
+            </td>
           </tr>
         `).join('')}
       </tbody>
@@ -637,6 +676,7 @@ function bindEvents(){
     }
     if(action==='logout'){ STATE.screen='login'; STATE.currentEmployee=null; render(); }
     if(action==='mtab'){ STATE.managerTab = btn.dataset.tab; render(); }
+    if(action==='export-csv'){ exportToCSV(); }
 
     if(action==='toggle-shift'){
       const emp = STATE.currentEmployee;
@@ -652,7 +692,7 @@ function bindEvents(){
     if(action==='checkin'){
       const storeId = btn.dataset.store;
       const store = STATE.stores.find(s=>s.id===storeId);
-      showToast('Đang quét tọa độ GPS...');
+      showToast('Đang định vị GPS...');
       try {
         const pos = await getPosition();
         const dist = haversine(pos.lat, pos.lng, store.lat, store.lng);
@@ -661,10 +701,10 @@ function bindEvents(){
           time:new Date().toISOString(), distance:dist, lat:pos.lat, lng:pos.lng
         });
         saveStored(KEYS.checkins, STATE.checkins);
-        showToast(`Đã ghé quầy (khoảng cách ${Math.round(dist)}m)`);
+        showToast(`Ghé quầy thành công (Khoảng cách ${Math.round(dist)}m)`);
         render();
       } catch(err){
-        showToast('Không thể lấy GPS. Hệ thống ghi nhận vị trí mặc định.');
+        showToast('Không lấy được GPS. Hệ thống ghi nhận vị trí định danh.');
         STATE.checkins.push({
           id:'ck_'+Date.now(), empId:STATE.currentEmployee.id, storeId,
           time:new Date().toISOString(), distance:0, lat:store.lat, lng:store.lng
@@ -709,8 +749,9 @@ function bindEvents(){
       render();
     }
 
+    // --- QUẢN LÝ QUẦY / MÃ KH ---
     if(action==='add-store-prompt'){
-      const code = prompt('Nhập Mã KH (VD: KH007):', 'KH00' + (STATE.stores.length + 1));
+      const code = prompt('Nhập Mã KH mới (VD: KH007):', 'KH00' + (STATE.stores.length + 1));
       if(!code) return;
       const name = prompt('Nhập Tên quầy/Cửa hàng:');
       if(!name) return;
@@ -727,12 +768,43 @@ function bindEvents(){
       };
       STATE.stores.push(newStore);
       saveStored(KEYS.stores, STATE.stores);
-      showToast('Đã thêm quầy mới thành công!');
+      showToast('Đã thêm quầy mới!');
       render();
     }
 
+    if(action==='edit-store'){
+      const id = btn.dataset.id;
+      const store = STATE.stores.find(s=>s.id===id);
+      if(!store) return;
+      
+      const code = prompt('Chỉnh sửa Mã KH:', store.code);
+      if(code===null) return;
+      const name = prompt('Chỉnh sửa Tên quầy:', store.name);
+      if(name===null) return;
+      const address = prompt('Chỉnh sửa Địa chỉ:', store.address);
+      if(address===null) return;
+
+      store.code = code.trim();
+      store.name = name.trim();
+      store.address = address.trim();
+      saveStored(KEYS.stores, STATE.stores);
+      showToast('Đã cập nhật thông tin quầy!');
+      render();
+    }
+
+    if(action==='delete-store'){
+      const id = btn.dataset.id;
+      if(confirm('Bạn có chắc chắn muốn xóa quầy này khỏi hệ thống?')){
+        STATE.stores = STATE.stores.filter(s=>s.id!==id);
+        saveStored(KEYS.stores, STATE.stores);
+        showToast('Đã xóa quầy!');
+        render();
+      }
+    }
+
+    // --- QUẢN LÝ SẢN PHẨM / SKU ---
     if(action==='add-product-prompt'){
-      const sku = prompt('Nhập Mã SP / SKU (VD: SP-NEW1):', 'SP-00' + (STATE.products.length + 1));
+      const sku = prompt('Nhập Mã SKU (VD: SP-NEW1):', 'SP-00' + (STATE.products.length + 1));
       if(!sku) return;
       const name = prompt('Nhập Tên sản phẩm:');
       if(!name) return;
@@ -748,6 +820,36 @@ function bindEvents(){
       saveStored(KEYS.products, STATE.products);
       showToast('Đã thêm sản phẩm mới!');
       render();
+    }
+
+    if(action==='edit-product'){
+      const id = btn.dataset.id;
+      const prod = STATE.products.find(p=>p.id===id);
+      if(!prod) return;
+
+      const sku = prompt('Chỉnh sửa Mã SKU:', prod.sku);
+      if(sku===null) return;
+      const name = prompt('Chỉnh sửa Tên sản phẩm:', prod.name);
+      if(name===null) return;
+      const price = prompt('Chỉnh sửa Đơn giá (VNĐ):', prod.price);
+      if(price===null) return;
+
+      prod.sku = sku.trim();
+      prod.name = name.trim();
+      prod.price = Number(price) || 0;
+      saveStored(KEYS.products, STATE.products);
+      showToast('Đã cập nhật sản phẩm!');
+      render();
+    }
+
+    if(action==='delete-product'){
+      const id = btn.dataset.id;
+      if(confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')){
+        STATE.products = STATE.products.filter(p=>p.id!==id);
+        saveStored(KEYS.products, STATE.products);
+        showToast('Đã xóa sản phẩm!');
+        render();
+      }
     }
   };
 
@@ -784,6 +886,13 @@ function bindEvents(){
       STATE.storeFilter = e.target.value;
       render();
       const input = document.getElementById('searchStore');
+      if(input){ input.focus(); input.selectionStart = input.selectionEnd = input.value.length; }
+    }
+
+    if(e.target.id==='searchProduct'){
+      STATE.productFilter = e.target.value;
+      render();
+      const input = document.getElementById('searchProduct');
       if(input){ input.focus(); input.selectionStart = input.selectionEnd = input.value.length; }
     }
   };
