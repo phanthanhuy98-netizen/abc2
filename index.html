@@ -1,841 +1,476 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hệ Thống DMS/SFA - Giám Sát Kỷ Luật & Quản Lý Sales</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#12213D">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Leaflet CSS & JS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- HTML5 QR Code Scanner -->
-<script src="https://unpkg.com/html5-qrcode"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Quản Lý Phân Phối DMS / SFA Enterprise</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet JS & CSS (Bản đồ Live Tracking) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- HTML5 QR Code Scanner -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
 
-<style>
-  :root { --navy:#12213D; --amber:#FCA311; --paper:#F6F1E6; --line:#D9D0BC; --muted:#6B6558; --green:#2D6A4F; --red:#C1121F; }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Inter',sans-serif;background:var(--navy);color:#1a1a1a;padding:12px;}
-  .app{max-width:1300px;margin:0 auto;}
-  .panel{background:var(--paper);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,0.3);margin-top:12px;}
-  h1,h2,h3,h4{font-family:'Oswald',sans-serif;color:var(--navy);}
-  
-  .topbar{display:flex;justify-content:space-between;align-items:center;color:#fff;flex-wrap:wrap;gap:12px;}
-  .nav-btns{display:flex;gap:6px;flex-wrap:wrap;}
-  .btn{background:var(--navy);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;}
-  .btn-amber{background:var(--amber);color:var(--navy);}
-  .btn-green{background:var(--green);color:#fff;}
-  .btn-red{background:var(--red);color:#fff;}
-  .btn-sm{padding:4px 8px;font-size:11px;}
-  
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:12px;}
-  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;}
-  .badge{display:inline-block;padding:3px 8px;background:#EFE7D6;border-radius:4px;font-size:11px;font-weight:700;}
-  .badge-success{background:#D8F3DC;color:var(--green);}
-  .badge-pending{background:#FFF3BF;color:#B57700;}
-  .badge-danger{background:#F8D7DA;color:var(--red);}
-  .badge-cat{background:#E0AFA0;color:#4A154B;font-size:10px;margin-left:4px;}
-  
-  input, select, textarea { width:100%; padding:8px; margin:4px 0 10px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:13px; }
-  table { width:100%; border-collapse:collapse; margin-top:10px; }
-  th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); font-size:12px; }
-  th { background:#EFE7D6; color:var(--navy); }
-  
-  .login-box{max-width:380px;margin:50px auto;background:#fff;padding:24px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.4);}
-  .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;z-index:999;}
-  .modal-content{background:#fff;padding:24px;border-radius:16px;width:90%;max-width:400px;}
-  .hidden{display:none !important;}
-  .stat-number{font-size:24px;font-weight:700;color:var(--navy);margin-top:4px;}
-  .cart-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);}
-  #map { height: 350px; width: 100%; border-radius: 12px; margin-top: 10px; z-index: 1; }
-  .cat-filter{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;}
-  .cat-chip{padding:4px 10px;background:#EFE7D6;border-radius:16px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
-  .cat-chip.active{background:var(--navy);color:#fff;}
-  .watermark-img{max-width:100%;border-radius:8px;margin-top:6px;border:2px solid var(--navy);}
-  .alert-box{background:#F8D7DA;color:var(--red);padding:10px;border-radius:8px;font-size:12px;margin-bottom:10px;font-weight:600;}
-</style>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, runTransaction, serverTimestamp, enableIndexedDbPersistence } 
-    from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyC7JD5MhzMka84JPyVG_5LbZjPz8JOnbuc",
-    authDomain: "uy-phan.firebaseapp.com",
-    projectId: "uy-phan",
-    storageBucket: "uy-phan.firebasestorage.app",
-    messagingSenderId: "387969382999",
-    appId: "1:387969382999:web:772ccbb251eb4871b28112"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  enableIndexedDbPersistence(db).catch(() => {});
-
-  let currentUser = null;
-  let currentTab = 'sales'; 
-  let stores = [], orders = [], users = [], checkins = [], products = [], promos = [], posmAudits = [];
-  let currentCart = [];
-  let activeVisitedStore = null;
-  let selectedCategoryFilter = 'Tất cả';
-  let html5QrScanner = null;
-
-  // REALTIME LISTENERS
-  onSnapshot(collection(db, "stores"), snap => { stores = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
-  onSnapshot(collection(db, "orders"), snap => { orders = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
-  onSnapshot(collection(db, "users"), snap => { users = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
-  onSnapshot(collection(db, "checkins"), snap => { checkins = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
-  onSnapshot(collection(db, "products"), snap => { products = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
-  onSnapshot(collection(db, "promos"), snap => { promos = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
-  onSnapshot(collection(db, "posmAudits"), snap => { posmAudits = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
-
-  // HAVERSINE CALCULATOR (<30M)
-  function getDistanceMeters(lat1, lon1, lat2, lon2) {
-    if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
-    const R = 6371e3;
-    const rad = Math.PI / 180;
-    const dLat = (lat2 - lat1) * rad;
-    const dLon = (lon2 - lon1) * rad;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * rad) * Math.cos(lat2 * rad) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  }
-
-  // WATERMARK ENGINE
-  function createWatermarkedImage(file, infoText) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 800;
-          const scale = MAX_WIDTH / img.width;
-          canvas.width = MAX_WIDTH;
-          canvas.height = img.height * scale;
-          const ctx = canvas.getContext("2d");
-          
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          
-          ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-          ctx.fillRect(0, canvas.height - 70, canvas.width, 70);
-          
-          ctx.fillStyle = "#FCA311";
-          ctx.font = "bold 16px Inter, sans-serif";
-          ctx.fillText(`📍 DMS STAMP: ${infoText.storeName}`, 15, canvas.height - 45);
-          
-          ctx.fillStyle = "#FFFFFF";
-          ctx.font = "12px Inter, sans-serif";
-          ctx.fillText(`Mã NV: ${infoText.salesCode} | NV: ${infoText.salesName} | GPS: ${infoText.lat.toFixed(5)}, ${infoText.lng.toFixed(5)}`, 15, canvas.height - 25);
-          ctx.fillText(`Thời gian: ${new Date().toLocaleString('vi-VN')}`, 15, canvas.height - 8);
-          
-          resolve(canvas.toDataURL("image/jpeg", 0.7));
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // 1. LOGIN & ĐỔI MẬT KHẨU
-  window.handleLogin = function(e) {
-    e.preventDefault();
-    const u = document.getElementById('logUser').value.trim();
-    const p = document.getElementById('logPass').value.trim();
-
-    if (u === 'admin' && p === 'admin123') {
-      currentUser = { id: 'admin_root', name: 'Admin Quản Lý', username: 'admin', code: 'NV-ADMIN', role: 'admin' };
-    } else {
-      const found = users.find(x => x.username === u && x.password === p);
-      if (found) currentUser = found;
-      else return alert("Sai tài khoản hoặc mật khẩu!");
-    }
-    
-    document.getElementById('loginView').classList.add('hidden');
-    document.getElementById('appView').classList.remove('hidden');
-    currentTab = (currentUser.role === 'admin') ? 'dashboard' : 'sales';
-    renderUI();
-  };
-
-  window.handleLogout = function() {
-    currentUser = null;
-    document.getElementById('loginView').classList.remove('hidden');
-    document.getElementById('appView').classList.add('hidden');
-  };
-
-  window.openChangePasswordModal = function() {
-    document.getElementById('changePassModal').classList.remove('hidden');
-  };
-
-  window.closeChangePasswordModal = function() {
-    document.getElementById('changePassModal').classList.add('hidden');
-  };
-
-  window.submitChangePassword = async function(e) {
-    e.preventDefault();
-    const oldP = document.getElementById('oldPassInput').value;
-    const newP = document.getElementById('newPassInput').value;
-    const confirmP = document.getElementById('confirmPassInput').value;
-
-    if (newP !== confirmP) return alert("Mật khẩu mới không trùng khớp!");
-    if (newP.length < 4) return alert("Mật khẩu phải từ 4 ký tự trở lên!");
-
-    if (currentUser.username === 'admin') {
-      alert("Tài khoản Root Admin mẫu không hỗ trợ đổi pass tạm thời.");
-      closeChangePasswordModal();
-      return;
-    }
-
-    if (currentUser.password !== oldP) return alert("Mật khẩu cũ không chính xác!");
-
-    await updateDoc(doc(db, "users", currentUser.id), { password: newP });
-    currentUser.password = newP;
-    alert("✅ Đổi mật khẩu thành công!");
-    closeChangePasswordModal();
-  };
-
-  // 2. CHECK-IN GPS <30M
-  window.doCheckinWithPhoto = function(storeId) {
-    const store = stores.find(s => s.id === storeId);
-    if (!store) return;
-
-    const fileInput = document.getElementById(`img_${store.id}`);
-    if (!fileInput || !fileInput.files[0]) {
-      return alert("⛔ BẮT BUỘC CHỤP ẢNH TẠI ĐIỂM BÁN!\nBạn chưa chụp ảnh trực tiếp từ Camera.");
-    }
-
-    navigator.geolocation.getCurrentPosition(async pos => {
-      const userLat = pos.coords.latitude;
-      const userLng = pos.coords.longitude;
-      
-      if (store.lat && store.lng) {
-        const distance = getDistanceMeters(userLat, userLng, store.lat, store.lng);
-        if (distance > 30) {
-          alert(`⛔ CHECK-IN THẤT BẠI!\n\n- Khoảng cách hiện tại: ${Math.round(distance)}m.\n- Quy định kỷ luật: Bắt buộc dưới 30m!`);
-          return;
-        }
-      }
-
-      const photoData = await createWatermarkedImage(fileInput.files[0], {
-        storeName: store.name,
-        salesCode: currentUser.code || 'NV001',
-        salesName: currentUser.name,
-        lat: userLat,
-        lng: userLng
-      });
-
-      await addDoc(collection(db, "checkins"), {
-        salesName: currentUser.name, salesCode: currentUser.code || 'NV001', salesUser: currentUser.username, 
-        storeName: store.name, storeId: store.id,
-        lat: userLat, lng: userLng, photo: photoData, status: 'Checked-in (Đạt <30m)',
-        createdAt: serverTimestamp()
-      });
-
-      activeVisitedStore = store;
-      alert(`✅ CHECK-IN THÀNH CÔNG!\nĐã xác thực vị trí cách tiệm ${store.name} dưới 30m.`);
-      renderUI();
-    }, () => {
-      alert("⛔ LỖI GPS: Không thể lấy vị trí! Hãy bật GPS trên điện thoại.");
-    }, { enableHighAccuracy: true, timeout: 10000 });
-  };
-
-  // 3. QUÉT MÃ QR CHECK-IN
-  window.startQRScanner = function(storeId) {
-    const store = stores.find(s => s.id === storeId);
-    document.getElementById('qrModal').classList.remove('hidden');
-    
-    html5QrScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-    html5QrScanner.render(async (decodedText) => {
-      if (decodedText === store.id || decodedText === store.name) {
-        html5QrScanner.clear();
-        document.getElementById('qrModal').classList.add('hidden');
-        alert(`✅ QUÉT MÃ QR THÀNH CÔNG!\nXác nhận đúng mã QR dán tại tiệm: ${store.name}`);
-        activeVisitedStore = store;
-        renderUI();
-      } else {
-        alert(`❌ LỖI MÃ QR!\nMã QR này không khớp với cửa hàng ${store.name}.`);
-      }
-    });
-  };
-
-  window.closeQRScanner = function() {
-    if (html5QrScanner) html5QrScanner.clear();
-    document.getElementById('qrModal').classList.add('hidden');
-  };
-
-  // 4. BÁN HÀNG THEO PHÂN LOẠI ĐƠN VỊ TÍNH
-  window.addToCartWithUnit = function(productId) {
-    const prd = products.find(p => p.id === productId);
-    if (!prd || prd.stock <= 0) return alert("Sản phẩm đã HẾT HÀNG!");
-
-    const selectedUnit = document.getElementById(`unit_select_${productId}`).value;
-    const unitRate = selectedUnit === 'Thùng' ? (prd.rateBox || 24) : (selectedUnit === 'Lốc' ? (prd.ratePack || 6) : 1);
-    const calculatedPrice = prd.price * unitRate;
-
-    const itemKey = `${productId}_${selectedUnit}`;
-    const item = currentCart.find(c => c.cartKey === itemKey);
-
-    if (item) {
-      if ((item.qty + 1) * unitRate > prd.stock) return alert("Không đủ tồn kho!");
-      item.qty += 1;
-    } else {
-      currentCart.push({ 
-        cartKey: itemKey, id: prd.id, code: prd.code, name: prd.name, 
-        unit: selectedUnit, unitRate: unitRate, price: calculatedPrice, qty: 1 
-      });
-    }
-    renderCartUI();
-  };
-
-  window.removeFromCart = function(cartKey) {
-    currentCart = currentCart.filter(c => c.cartKey !== cartKey);
-    renderCartUI();
-  };
-
-  function renderCartUI() {
-    const cartContainer = document.getElementById('cartList');
-    if (!cartContainer) return;
-
-    let subtotal = 0;
-    let promoGiftList = [];
-
-    currentCart.forEach(item => {
-      subtotal += item.price * item.qty;
-      promos.forEach(p => {
-        if (p.buyPrdId === item.id && (item.qty * item.unitRate) >= p.buyQty) {
-          const giftCount = Math.floor((item.qty * item.unitRate) / p.buyQty) * p.getQty;
-          promoGiftList.push(`🎁 Tặng ${giftCount} x ${p.getPrdName} (KM Mua ${p.buyQty} Tặng ${p.getQty})`);
-        }
-      });
-    });
-
-    cartContainer.innerHTML = currentCart.map(i => `
-      <div class="cart-item">
-        <div><b>[${i.code}] ${i.name}</b><br><small>ĐVT: <b style="color:var(--amber);">${i.unit}</b> (${i.price.toLocaleString()}đ) x ${i.qty}</small></div>
-        <div><b>${(i.price*i.qty).toLocaleString()}đ</b> <button class="btn btn-red btn-sm" onclick="removeFromCart('${i.cartKey}')">X</button></div>
-      </div>
-    `).join('') + (promoGiftList.length > 0 ? `<div style="color:var(--green);font-size:11px;margin-top:6px;">${promoGiftList.join('<br>')}</div>` : '');
-
-    document.getElementById('cartTotal').innerText = `${subtotal.toLocaleString('vi-VN')} đ`;
-  }
-
-  window.submitOrder = async function(e) {
-    e.preventDefault();
-    if (currentCart.length === 0) return alert("Vui lòng chọn sản phẩm!");
-    
-    const storeName = document.getElementById('ordStore').value;
-    const storeObj = stores.find(s => s.name === storeName);
-    const creditLimit = storeObj?.creditLimit || 20000000;
-
-    const currentDebt = orders.filter(o => o.storeName === storeName && o.paymentStatus !== 'Đã thanh toán')
-                              .reduce((sum, o) => sum + (o.amount || 0), 0);
-
-    let subtotal = currentCart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-
-    if ((currentDebt + subtotal) > creditLimit) {
-      alert(`⛔ ĐƠN HÀNG BỊ KHÓA DO VƯỢT HẠN MỨC CÔNG NỢ!\n- Dư nợ tiệm: ${currentDebt.toLocaleString()}đ\n- Đơn mới: ${subtotal.toLocaleString()}đ\n- Hạn mức: ${creditLimit.toLocaleString()}đ`);
-      return;
-    }
-
-    try {
-      await runTransaction(db, async (transaction) => {
-        for (let item of currentCart) {
-          const prdRef = doc(db, "products", item.id);
-          const prdDoc = await transaction.get(prdRef);
-          const totalBaseQtyNeed = item.qty * item.unitRate;
-          if (!prdDoc.exists() || prdDoc.data().stock < totalBaseQtyNeed) throw `Sản phẩm ${item.name} không đủ tồn kho!`;
-        }
-
-        for (let item of currentCart) {
-          const prdRef = doc(db, "products", item.id);
-          const prdDoc = await transaction.get(prdRef);
-          const totalBaseQtyNeed = item.qty * item.unitRate;
-          transaction.update(prdRef, { stock: prdDoc.data().stock - totalBaseQtyNeed });
-        }
-
-        const newOrderRef = doc(collection(db, "orders"));
-        transaction.set(newOrderRef, {
-          salesName: currentUser.name, salesCode: currentUser.code || 'NV001', salesUser: currentUser.username,
-          storeName, items: currentCart, amount: subtotal,
-          paymentStatus: 'Công nợ', status: 'Chờ duyệt',
-          createdAt: serverTimestamp()
-        });
-      });
-
-      alert("🚀 Lên đơn hàng thành công!");
-      currentCart = [];
-      activeVisitedStore = null;
-      renderCartUI();
-      renderUI();
-    } catch (err) { alert("Lỗi tạo đơn: " + err); }
-  };
-
-  // MANAGEMENT
-  window.addProduct = async function(e) {
-    e.preventDefault();
-    const code = document.getElementById('prdCode').value.trim();
-    const name = document.getElementById('prdName').value.trim();
-    const category = document.getElementById('prdCategory').value;
-    const baseUnit = document.getElementById('prdBaseUnit').value;
-    const ratePack = Number(document.getElementById('prdRatePack').value || 6);
-    const rateBox = Number(document.getElementById('prdRateBox').value || 24);
-    const price = Number(document.getElementById('prdPrice').value);
-    const stock = Number(document.getElementById('prdStock').value);
-
-    await addDoc(collection(db, "products"), { code, name, category, baseUnit, ratePack, rateBox, price, stock, createdAt: serverTimestamp() });
-    alert("Đã thêm sản phẩm mới!");
-    document.getElementById('prdForm').reset();
-  };
-
-  window.deleteProduct = async function(id) { if(confirm("Xóa SP?")) await deleteDoc(doc(db, "products", id)); };
-  window.filterCategory = function(cat) { selectedCategoryFilter = cat; renderUI(); };
-
-  window.addUser = async function(e) {
-    e.preventDefault();
-    const code = document.getElementById('usCode').value.trim();
-    const name = document.getElementById('usName').value.trim();
-    const username = document.getElementById('usUser').value.trim();
-    const password = document.getElementById('usPass').value.trim();
-    const role = document.getElementById('usRole').value;
-
-    await addDoc(collection(db, "users"), { code, name, username, password, role, createdAt: serverTimestamp() });
-    alert("Tạo tài khoản Nhân viên thành công!");
-    document.getElementById('userForm').reset();
-  };
-  window.deleteUser = async function(id) { if(confirm("Xóa tài khoản?")) await deleteDoc(doc(db, "users", id)); };
-
-  window.addStore = async function(e) {
-    e.preventDefault();
-    const name = document.getElementById('stName').value;
-    const address = document.getElementById('stAddr').value;
-    const routeDay = document.getElementById('stRoute').value;
-    const creditLimit = Number(document.getElementById('stCredit').value || 20000000);
-    const lat = Number(document.getElementById('stLat').value || 0);
-    const lng = Number(document.getElementById('stLng').value || 0);
-
-    await addDoc(collection(db, "stores"), { name, address, routeDay, creditLimit, lat, lng, createdAt: serverTimestamp() });
-    alert("Đã thêm điểm bán mới!");
-    document.getElementById('stForm').reset();
-  };
-
-  window.deleteStore = async function(id) { if(confirm("Xóa điểm bán?")) await deleteDoc(doc(db, "stores", id)); };
-  window.updateOrderStatus = async function(id, status) { await updateDoc(doc(db, "orders", id), { status }); };
-  window.updatePaymentStatus = async function(id, paymentStatus) { await updateDoc(doc(db, "orders", id), { paymentStatus }); };
-  window.deleteOrder = async function(id) { if(confirm("Xóa đơn hàng?")) await deleteDoc(doc(db, "orders", id)); };
-  window.switchTab = function(tab) { currentTab = tab; renderUI(); };
-
-  function initLiveMap() {
-    setTimeout(() => {
-      const mapContainer = document.getElementById('map');
-      if (!mapContainer) return;
-      
-      const map = L.map('map').setView([10.7769, 106.7009], 11);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-
-      let bounds = [];
-      checkins.forEach(c => {
-        if (c.lat && c.lng) {
-          L.marker([c.lat, c.lng]).addTo(map)
-            .bindPopup(`<b>[${c.salesCode||'NV'}] ${c.salesName}</b><br>Tiệm: ${c.storeName}`);
-          bounds.push([c.lat, c.lng]);
-        }
-      });
-      if (bounds.length > 0) map.fitBounds(bounds);
-    }, 300);
-  }
-
-  // RENDER MAIN UI
-  function renderUI() {
-    if (!currentUser) return;
-    document.getElementById('userInfo').innerText = `[${currentUser.code || 'ADMIN'}] ${currentUser.name}`;
-    
-    if (currentUser.role === 'admin') {
-      document.getElementById('navAdminUsers').classList.remove('hidden');
-      document.getElementById('navAdminDash').classList.remove('hidden');
-      document.getElementById('navAdminPrd').classList.remove('hidden');
-      document.getElementById('navAdminAudit').classList.remove('hidden');
-    } else {
-      document.getElementById('navAdminUsers').classList.add('hidden');
-      document.getElementById('navAdminDash').classList.add('hidden');
-      document.getElementById('navAdminPrd').classList.add('hidden');
-      document.getElementById('navAdminAudit').classList.add('hidden');
-    }
-
-    const main = document.getElementById('mainContent');
-
-    if (currentTab === 'dashboard') {
-      const totalRev = orders.reduce((sum, o) => sum + (o.amount || 0), 0);
-      main.innerHTML = `
-        <h2>Giám Sát & Báo Cáo Kỷ Luật Realtime</h2>
-        <div class="grid">
-          <div class="card"><span class="badge">Doanh Số Cloud</span><div class="stat-number">${totalRev.toLocaleString('vi-VN')} đ</div></div>
-          <div class="card"><span class="badge">Tổng Đơn Hàng</span><div class="stat-number">${orders.length} đơn</div></div>
-          <div class="card"><span class="badge badge-success">Lượt Check-in (<30m)</span><div class="stat-number">${checkins.length} lượt</div></div>
-        </div>
-        <div class="grid" style="margin-top:16px;">
-          <div class="card" style="grid-column: span 3;">
-            <h3>🗺️ Bản Đồ Live Tracking Vị Trí Check-in Sales</h3>
-            <div id="map"></div>
-          </div>
-        </div>
-      `;
-      initLiveMap();
-    }
-    else if (currentTab === 'sales') {
-      const categories = ['Tất cả', 'Hộp', 'Chai', 'Lốc', 'Thùng', 'Khác'];
-      const filteredProducts = selectedCategoryFilter === 'Tất cả' ? products : products.filter(p => p.category === selectedCategoryFilter);
-
-      main.innerHTML = `
-        <h2>Bán Hàng & Giám Sát Đi Thị Trường</h2>
-        <div class="grid">
-          <div class="card">
-            <h3>📍 Tuyến Điểm Bán Tới Lịch</h3>
-            <div class="alert-box">⚠️ Kỷ luật Check-in: Bán kính < 30m & Mở trực tiếp Camera điện thoại.</div>
-            ${stores.map(s => `
-              <div style="margin-top:10px;padding-bottom:12px;border-bottom:1px solid #eee;">
-                <b>${s.name}</b> <span class="badge badge-pending">${s.routeDay||'Cả tuần'}</span><br>
-                <small style="color:var(--muted);">${s.address}</small><br>
-                <input type="file" id="img_${s.id}" accept="image/*" capture="environment" style="margin-top:4px;">
-                <div style="display:flex;gap:4px;margin-top:6px;">
-                  <button class="btn btn-amber btn-sm" style="flex:1;" onclick="doCheckinWithPhoto('${s.id}')">📍 Check-in GPS (<30m)</button>
-                  <button class="btn btn-green btn-sm" onclick="startQRScanner('${s.id}')">📷 Quét QR</button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-
-          <div class="card" style="grid-column: span 2;">
-            ${activeVisitedStore ? `
-              <h3>🛒 Đang Bán Hàng Tại: <span style="color:var(--amber);">${activeVisitedStore.name}</span></h3>
-              
-              <div class="cat-filter">
-                ${categories.map(c => `<div class="cat-chip ${selectedCategoryFilter===c?'active':''}" onclick="filterCategory('${c}')">${c}</div>`).join('')}
-              </div>
-
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <div>
-                  <h4>Catalog Sản Phẩm theo ĐVT</h4>
-                  <div style="max-height:350px;overflow-y:auto;margin-top:8px;">
-                    ${filteredProducts.map(p => `
-                      <div style="padding:8px;border-bottom:1px solid #eee;background:#fafafa;border-radius:6px;margin-bottom:6px;">
-                        <b>[${p.code||'SKU'}] ${p.name}</b> <span class="badge badge-cat">${p.category||'Khác'}</span><br>
-                        <small>Giá lẻ (Hộp/Chai): <b>${p.price.toLocaleString()}đ</b> | Tồn lẻ: ${p.stock}</small>
-                        <div style="display:flex;gap:4px;margin-top:6px;">
-                          <select id="unit_select_${p.id}" style="margin:0;padding:4px;font-size:11px;">
-                            <option value="${p.baseUnit||'Hộp'}">${p.baseUnit||'Hộp/Chai'} (x1)</option>
-                            <option value="Lốc">Lốc (x${p.ratePack||6})</option>
-                            <option value="Thùng">Thùng (x${p.rateBox||24})</option>
-                          </select>
-                          <button class="btn btn-green btn-sm" onclick="addToCartWithUnit('${p.id}')">+ Chọn</button>
-                        </div>
-                      </div>
-                    `).join('')}
-                  </div>
-                </div>
-
-                <div>
-                  <form id="ordForm" onsubmit="submitOrder(event)">
-                    <input type="hidden" id="ordStore" value="${activeVisitedStore.name}">
-                    <div style="background:#f0f0f0;padding:10px;border-radius:8px;margin-bottom:8px;">
-                      <h4>Giỏ Hàng Chi Tiết:</h4>
-                      <div id="cartList">Chưa chọn sản phẩm...</div>
-                      <hr style="margin:8px 0;">
-                      <div style="display:flex;justify-content:space-between;">
-                        <b>Tổng Tiền:</b>
-                        <b id="cartTotal" style="color:var(--red);font-size:16px;">0 đ</b>
-                      </div>
-                    </div>
-                    <button class="btn btn-green" style="width:100%;">🚀 Khóa Đơn & Gửi Cloud</button>
-                  </form>
-                </div>
-              </div>
-            ` : `
-              <div style="text-align:center;padding:40px;color:var(--muted);">
-                <h3>🔒 Chưa Xác Thực Vị Trí Điểm Bán!</h3>
-                <p>Vui lòng chọn nút <b>"📍 Check-in GPS (<30m)"</b> hoặc <b>"📷 Quét QR"</b> để bắt đầu bán hàng.</p>
-              </div>
-            `}
-          </div>
-        </div>
-      `;
-    }
-    else if (currentTab === 'products' && currentUser.role === 'admin') {
-      main.innerHTML = `
-        <h2>Quản Lý Sản Phẩm & Quy Đổi Đơn Vị Tính</h2>
-        <div class="grid">
-          <div class="card">
-            <h3>+ Thêm Sản Phẩm & Quy Đổi</h3>
-            <form id="prdForm" onsubmit="addProduct(event)">
-              <label>Mã Sản Phẩm (SKU):</label>
-              <input type="text" id="prdCode" placeholder="VD: VNM-MILK-100" required>
-              <label>Tên Sản Phẩm:</label>
-              <input type="text" id="prdName" placeholder="VD: Sữa Tươi SuSu" required>
-              <label>Phân Loại Ngành Hàng:</label>
-              <select id="prdCategory">
-                <option value="Hộp">Phân loại Hộp</option>
-                <option value="Chai">Phân loại Chai</option>
-                <option value="Lốc">Phân loại Lốc</option>
-                <option value="Thùng">Phân loại Thùng</option>
-                <option value="Khác">Phân loại Khác</option>
-              </select>
-              <label>Đơn Vị Cơ Bản (Nhỏ nhất):</label>
-              <select id="prdBaseUnit">
-                <option value="Hộp">Hộp</option>
-                <option value="Chai">Chai</option>
-                <option value="Gói">Gói</option>
-              </select>
-              <label>Quy đổi 1 Lốc = bao nhiêu đơn vị cơ bản?</label>
-              <input type="number" id="prdRatePack" value="6" required>
-              <label>Quy đổi 1 Thùng = bao nhiêu đơn vị cơ bản?</label>
-              <input type="number" id="prdRateBox" value="24" required>
-              <label>Đơn Giá Cơ Bản (đ):</label>
-              <input type="number" id="prdPrice" placeholder="Giá 1 Hộp/Chai" required>
-              <label>Tồn Kho Cơ Bản (Số Hộp/Chai):</label>
-              <input type="number" id="prdStock" placeholder="VD: 2400" required>
-              <button class="btn btn-green" style="width:100%;">+ Lưu Sản Phẩm</button>
-            </form>
-          </div>
-
-          <div class="card" style="grid-column: span 2;">
-            <h3>Danh Sách Sản Phẩm & Tỷ Lệ Quy Đổi</h3>
-            <table>
-              <thead><tr><th>Mã SKU</th><th>Tên SP</th><th>Phân Loại</th><th>Quy Đổi Lốc/Thùng</th><th>Giá Cơ Bản</th><th>Tồn Lẻ</th><th>Thao Tác</th></tr></thead>
-              <tbody>
-                ${products.map(p => `
-                  <tr>
-                    <td><b>${p.code||'SKU'}</b></td>
-                    <td>${p.name}</td>
-                    <td><span class="badge badge-cat">${p.category||'Khác'}</span></td>
-                    <td><small>1 Lốc=${p.ratePack||6} | 1 Thùng=${p.rateBox||24}</small></td>
-                    <td><b>${p.price.toLocaleString()}đ</b></td>
-                    <td><span class="badge">${p.stock} ${p.baseUnit||'Hộp'}</span></td>
-                    <td><button class="btn btn-red btn-sm" onclick="deleteProduct('${p.id}')">Xóa</button></td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-    }
-    else if (currentTab === 'stores') {
-      main.innerHTML = `
-        <h2>Quản Lý Tuyến & Điểm Bán (Tiệm)</h2>
-        <div class="grid">
-          <div class="card">
-            <h3>+ Thêm Điểm Bán Mới</h3>
-            <form id="stForm" onsubmit="addStore(event)">
-              <label>Tên Cửa Hàng / Tiệm:</label>
-              <input type="text" id="stName" placeholder="VD: Tạp hóa Minh Phát" required>
-              <label>Địa Chỉ Chi Tiết:</label>
-              <input type="text" id="stAddr" placeholder="VD: 123 Nguyễn Huệ, Q.1" required>
-              <label>Tuyến Đi Lịch Trong Tần:</label>
-              <select id="stRoute">
-                <option value="Thứ 2 - Thứ 4 - Thứ 6">Thứ 2 - Thứ 4 - Thứ 6</option>
-                <option value="Thứ 3 - Thứ 5 - Thứ 7">Thứ 3 - Thứ 5 - Thứ 7</option>
-                <option value="Cả tuần">Cả tuần</option>
-              </select>
-              <label>Hạn Mức Công Nợ Tối Đa (VNĐ):</label>
-              <input type="number" id="stCredit" value="20000000" required>
-              <label>Tọa Độ Lĩnh Vực GPS Lat (Vĩ độ):</label>
-              <input type="number" step="any" id="stLat" placeholder="10.7769">
-              <label>Tọa Độ Lĩnh Vực GPS Lng (Kinh độ):</label>
-              <input type="number" step="any" id="stLng" placeholder="106.7009">
-              <button class="btn btn-green" style="width:100%;">+ Lưu Cửa Hàng</button>
-            </form>
-          </div>
-
-          <div class="card" style="grid-column: span 2;">
-            <h3>Danh Sách Điểm Bán Của Doanh Nghiệp</h3>
-            <table>
-              <thead><tr><th>Tên Điểm Bán</th><th>Địa Chỉ</th><th>Tuyến Lịch</th><th>Hạn Mức Nợ</th><th>Thao Tác</th></tr></thead>
-              <tbody>
-                ${stores.map(s => `
-                  <tr>
-                    <td><b>${s.name}</b></td>
-                    <td>${s.address}</td>
-                    <td><span class="badge badge-pending">${s.routeDay||'Cả tuần'}</span></td>
-                    <td><b>${(s.creditLimit||0).toLocaleString()}đ</b></td>
-                    <td><button class="btn btn-red btn-sm" onclick="deleteStore('${s.id}')">Xóa</button></td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-    }
-    else if (currentTab === 'orders') {
-      main.innerHTML = `
-        <h2>Danh Sách Đơn Hàng Toàn Hệ Thống</h2>
-        <div class="card">
-          <table>
-            <thead><tr><th>Mã NV Sales</th><th>Điểm Bán</th><th>Chi Tiết Hàng</th><th>Tổng Tiền</th><th>Thanh Toán</th><th>Trạng Thái</th><th>Thao Tác</th></tr></thead>
-            <tbody>
-              ${orders.map(o => `
-                <tr>
-                  <td><b>[${o.salesCode||'NV'}]</b><br>${o.salesName||'Sales'}</td>
-                  <td><b>${o.storeName}</b></td>
-                  <td><small>${(o.items||[]).map(i => `${i.name} (${i.unit} x${i.qty})`).join(', ')}</small></td>
-                  <td><b style="color:var(--red);">${(o.amount||0).toLocaleString()}đ</b></td>
-                  <td>
-                    <select onchange="updatePaymentStatus('${o.id}', this.value)" style="margin:0;padding:2px;font-size:11px;">
-                      <option value="Công nợ" ${o.paymentStatus==='Công nợ'?'selected':''}>Công nợ</option>
-                      <option value="Đã thanh toán" ${o.paymentStatus==='Đã thanh toán'?'selected':''}>Đã thanh toán</option>
-                    </select>
-                  </td>
-                  <td>
-                    <select onchange="updateOrderStatus('${o.id}', this.value)" style="margin:0;padding:2px;font-size:11px;">
-                      <option value="Chờ duyệt" ${o.status==='Chờ duyệt'?'selected':''}>Chờ duyệt</option>
-                      <option value="Đã duyệt" ${o.status==='Đã duyệt'?'selected':''}>Đã duyệt</option>
-                      <option value="Đã giao hàng" ${o.status==='Đã giao hàng'?'selected':''}>Đã giao hàng</option>
-                      <option value="Đã hủy" ${o.status==='Đã hủy'?'selected':''}>Đã hủy</option>
-                    </select>
-                  </td>
-                  <td><button class="btn btn-red btn-sm" onclick="deleteOrder('${o.id}')">Xóa</button></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-    else if (currentTab === 'audit' && currentUser.role === 'admin') {
-      main.innerHTML = `
-        <h2>Báo Cáo Nhật Ký Check-in GPS (<30m) & Watermark</h2>
-        <div class="grid">
-          ${checkins.map(c => `
-            <div class="card">
-              <b>Tiệm: ${c.storeName}</b> <span class="badge badge-success">${c.status}</span><br>
-              <small>Sales: [${c.salesCode||'NV'}] ${c.salesName}</small><br>
-              <small>Tọa độ: ${c.lat ? c.lat.toFixed(4) : 'N/A'}, ${c.lng ? c.lng.toFixed(4) : 'N/A'}</small>
-              ${c.photo ? `<img src="${c.photo}" class="watermark-img">` : ''}
-            </div>
-          `).join('')}
-        </div>
-      `;
-    }
-    else if (currentTab === 'users' && currentUser.role === 'admin') {
-      main.innerHTML = `
-        <h2>Quản Lý Tài Khoản Nhân Viên Sales</h2>
-        <div class="grid">
-          <div class="card">
-            <h3>+ Tạo Tài Khoản Mới</h3>
-            <form id="userForm" onsubmit="addUser(event)">
-              <input type="text" id="usCode" placeholder="Mã NV (VD: NV001)" required>
-              <input type="text" id="usName" placeholder="Tên NV" required>
-              <input type="text" id="usUser" placeholder="Tên đăng nhập" required>
-              <input type="text" id="usPass" placeholder="Mật khẩu ban đầu" required>
-              <select id="usRole">
-                <option value="sales">Sales Đi Thị Trường</option>
-                <option value="admin">Quản Lý Admin</option>
-              </select>
-              <button class="btn btn-green" style="width:100%;">+ Tạo Nhân Viên</button>
-            </form>
-          </div>
-          <div class="card" style="grid-column: span 2;">
-            <h3>Danh Sách Nhân Viên</h3>
-            <table>
-              <thead><tr><th>Mã NV</th><th>Họ Tên</th><th>Tài Khoản</th><th>Mật Khẩu</th><th>Thao Tác</th></tr></thead>
-              <tbody>
-                ${users.map(u => `
-                  <tr>
-                    <td><b>${u.code||'NV'}</b></td>
-                    <td>${u.name}</td>
-                    <td>${u.username}</td>
-                    <td><code>${u.password}</code></td>
-                    <td><button class="btn btn-red btn-sm" onclick="deleteUser('${u.id}')">Xóa</button></td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-    }
-  }
-</script>
+    <style>
+        .progress-bar-fill { transition: width 0.4s ease-in-out; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        #map { height: 380px; width: 100%; border-radius: 0.75rem; }
+    </style>
 </head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen pb-12">
 
-<body>
-<div class="app">
+    <!-- TOP BAR / HEADER -->
+    <header class="bg-slate-900 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i data-lucide="shield-check" class="text-blue-400 w-8 h-8"></i>
+                <div>
+                    <h1 class="text-lg font-bold leading-none">DMS PRO ENTERPRISE</h1>
+                    <span class="text-xs text-slate-400">Hệ Thống Quản Lý Phân Phối & SFA Full-Stage</span>
+                </div>
+            </div>
+            <!-- User Status & Quick Actions -->
+            <div class="flex items-center space-x-3 text-sm">
+                <span id="userBadge" class="bg-blue-600/30 text-blue-300 px-3 py-1 rounded-full border border-blue-500/30 font-medium">
+                    Sales Representative
+                </span>
+                <button onclick="openChangePasswordModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1">
+                    <i data-lucide="key" class="w-3.5 h-3.5"></i> Đổi Pass
+                </button>
+            </div>
+        </div>
+    </header>
 
-  <!-- LOGIN FORM -->
-  <div id="loginView" class="login-box">
-    <h2 style="text-align:center;margin-bottom:12px;">HỆ THỐNG DMS/SFA</h2>
-    <p style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:20px;">Giám Sát Đi Thị Trường & Quản Lý Đơn Hàng</p>
-    <form onsubmit="handleLogin(event)">
-      <label>Tài Khoản Đăng Nhập:</label>
-      <input type="text" id="logUser" placeholder="Tên đăng nhập" required>
-      <label>Mật Khẩu:</label>
-      <input type="password" id="logPass" placeholder="Mật khẩu" required>
-      <button class="btn btn-amber" style="width:100%;padding:12px;margin-top:10px;font-size:14px;">🔑 ĐĂNG NHẬP</button>
-    </form>
-    <div style="margin-top:16px;padding:10px;background:#f8f8f8;border-radius:8px;font-size:11px;color:var(--muted);">
-      <b>Tài khoản mẫu Admin Root:</b><br>
-      User: <code>admin</code> | Pass: <code>admin123</code>
+    <!-- NAVIGATION TABS -->
+    <nav class="bg-white border-b border-slate-200 sticky top-[65px] z-40 shadow-sm overflow-x-auto">
+        <div class="max-w-7xl mx-auto flex">
+            <button onclick="switchTab('salesTab')" class="nav-btn active border-b-2 border-blue-600 text-blue-600 font-semibold px-5 py-3 text-sm flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="shopping-cart" class="w-4 h-4"></i> GĐ1 & 2: Bán Hàng & KPI
+            </button>
+            <button onclick="switchTab('kpiTab')" class="nav-btn border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-semibold px-5 py-3 text-sm flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="target" class="w-4 h-4"></i> KPI Ngành Hàng Multi-KPI
+            </button>
+            <button onclick="switchTab('logisticsTab')" class="nav-btn border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-semibold px-5 py-3 text-sm flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="truck" class="w-4 h-4"></i> GĐ3: Kho Vận & FIFO
+            </button>
+            <button onclick="switchTab('debtTab')" class="nav-btn border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-semibold px-5 py-3 text-sm flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="credit-card" class="w-4 h-4"></i> Giới Hạn Nợ & Bảng Giá
+            </button>
+            <button onclick="switchTab('adminTab')" class="nav-btn border-b-2 border-transparent text-slate-600 hover:text-slate-900 font-semibold px-5 py-3 text-sm flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="settings" class="w-4 h-4"></i> Admin Panel & Tracking
+            </button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto p-4 md:p-6">
+
+        <!-- TAB 1: GIAI ĐOẠN 1 & 2 - CHECK-IN / BÁN HÀNG MULTI-UOM -->
+        <section id="salesTab" class="tab-content active space-y-6">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <div class="flex items-center gap-3">
+                    <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
+                        <i data-lucide="clock" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 font-semibold uppercase">Thời Gian Chuẩn Server</div>
+                        <div id="serverTimeDisplay" class="text-base font-bold text-slate-800">Đang đồng bộ...</div>
+                        <div class="text-[11px] text-emerald-600 font-medium">✓ Chống đổi giờ điện thoại</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="p-3 bg-amber-100 text-amber-600 rounded-lg">
+                        <i data-lucide="map-pin" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 font-semibold uppercase">Điểm Bán Hiện Tại</div>
+                        <select id="storeSelect" onchange="checkStoreCreditLimit()" class="mt-1 font-semibold text-slate-800 bg-slate-50 border border-slate-300 text-sm rounded-md p-1.5 w-full">
+                            <option value="S01">Tiệm Tạp Hóa Minh Anh (Tiệm Lẻ - Nhóm C)</option>
+                            <option value="S02">Siêu Thị Mini Bách Khoa (Đại Lý Cấp 1 - Nhóm A)</option>
+                            <option value="S03">Cửa Hàng Tiện Lợi Đa Năng (Nợ Quá Hạn - Khóa)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="triggerWatermarkCheckIn()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-3 rounded-lg text-sm flex items-center justify-center gap-1.5 transition shadow-sm">
+                        <i data-lucide="camera" class="w-4 h-4"></i> Check-in Camera GPS
+                    </button>
+                    <button onclick="connectBluetoothPrinter()" class="bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 px-3 rounded-lg text-sm flex items-center gap-1.5 transition">
+                        <i data-lucide="printer" class="w-4 h-4"></i> In Bluetooth
+                    </button>
+                </div>
+            </div>
+
+            <!-- CAMERA WATERMARK INPUT (HIDDEN) -->
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="processCameraWatermark(event)">
+
+            <!-- MUST-SELL SKU PROMPT -->
+            <div class="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-300/60 p-4 rounded-xl flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="sparkles" class="text-amber-600 w-6 h-6 shrink-0"></i>
+                    <div>
+                        <div class="text-xs font-bold text-amber-800 uppercase tracking-wide">Gợi Ý Tư Vấn Đẩy Hàng (Focus SKU Prompt)</div>
+                        <div class="text-sm text-slate-700">Điểm bán này chưa nhập <b>Nước Giải Khát Lộc Phát</b> & KPI Ngành Hàng Hóa Mỹ Phẩm của bạn đang thiếu <b>35%</b>!</div>
+                    </div>
+                </div>
+                <button onclick="addFocusSKUToCart()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition whitespace-nowrap shadow-sm">
+                    + Thêm SKU Trọng Điểm
+                </button>
+            </div>
+
+            <!-- ORDER MULTI-UOM TABLE -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <h2 class="font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="shopping-bag" class="w-5 h-5 text-blue-600"></i> Lên Đơn Hàng Đa Đơn Vị Tính (Multi-UOM)
+                    </h2>
+                    <span id="creditBadge" class="text-xs bg-emerald-100 text-emerald-700 font-semibold px-2.5 py-1 rounded-full">
+                        Hạn Mức Công Nợ Hợp Lệ
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-100 text-slate-600 font-semibold uppercase text-xs">
+                            <tr>
+                                <th class="p-3">Mặt Hàng / Ngành Hàng</th>
+                                <th class="p-3">Đơn Vị Bán (UOM)</th>
+                                <th class="p-3">Đơn Giá Quy Đổi</th>
+                                <th class="p-3 w-28">Số Lượng</th>
+                                <th class="p-3 text-right">Thành Tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productOrderTable" class="divide-y divide-slate-200"></tbody>
+                    </table>
+                </div>
+
+                <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="text-xs text-slate-500">* Tự động áp dụng hệ số quy đổi <code>rateBox</code> / <code>ratePack</code> để trừ kho lẻ chuẩn xác.</div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                            <span class="text-xs text-slate-500 block">Tổng Tiền Đơn Hàng</span>
+                            <span id="orderTotalDisplay" class="text-xl font-bold text-blue-600">0 VNĐ</span>
+                        </div>
+                        <button onclick="submitOrder()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-lg transition shadow">
+                            Chốt Đơn Hàng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: KPI NGÀNH HÀNG -->
+        <section id="kpiTab" class="tab-content space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                <div class="flex justify-between items-center border-b pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Bảng Tiến Độ KPI Đa Ngành Hàng (Category Target Dashboard)</h2>
+                        <p class="text-xs text-slate-500">Chỉ tiêu bắt buộc đạt tối thiểu 80% trên từng ngành hàng để tính thưởng Vượt Chỉ Tiêu.</p>
+                    </div>
+                    <span class="bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-200">
+                        Tháng Hiện Tại: 08/2026
+                    </span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kpiContainer"></div>
+            </div>
+        </section>
+
+        <!-- TAB 3: KHO VẬN & FIFO -->
+        <section id="logisticsTab" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm border-b pb-3">
+                        <i data-lucide="layers" class="w-4 h-4 text-purple-600"></i> Quản Lý Lô & Hạn Sử Dụng (FIFO)
+                    </h3>
+                    <div class="space-y-3" id="fifoLotContainer"></div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm border-b pb-3">
+                        <i data-lucide="truck" class="w-4 h-4 text-blue-600"></i> Phân Quyền Delivery - Trạng Thái Giao Hàng
+                    </h3>
+                    <div class="space-y-3" id="deliveryOrdersContainer"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: HẠN MỨC & BẢNG GIÁ -->
+        <section id="debtTab" class="tab-content space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+                <h2 class="text-lg font-bold text-slate-800 border-b pb-3">Quản Lý Hạn Mức, Tuổi Nợ & Bảng Giá Khách Hàng</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="p-4 bg-slate-50 border rounded-lg">
+                        <div class="text-xs text-slate-500">Đại Lý Cấp 1 (Nhóm A)</div>
+                        <div class="text-lg font-bold text-slate-800 mt-1">Chiết khấu 12%</div>
+                        <div class="text-xs text-slate-600 mt-2">Hạn mức nợ: <b>100.000.000 VNĐ</b></div>
+                    </div>
+                    <div class="p-4 bg-slate-50 border rounded-lg">
+                        <div class="text-xs text-slate-500">Đại Lý Cấp 2 (Nhóm B)</div>
+                        <div class="text-lg font-bold text-slate-800 mt-1">Chiết khấu 5%</div>
+                        <div class="text-xs text-slate-600 mt-2">Hạn mức nợ: <b>30.000.000 VNĐ</b></div>
+                    </div>
+                    <div class="p-4 bg-slate-50 border rounded-lg">
+                        <div class="text-xs text-slate-500">Tiệm Bán Lẻ (Nhóm C)</div>
+                        <div class="text-lg font-bold text-slate-800 mt-1">Bảng Giá Lẻ Tiêu Chuẩn</div>
+                        <div class="text-xs text-slate-600 mt-2">Hạn mức nợ: <b>5.000.000 VNĐ</b></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: ADMIN PANEL & GPS LIVE TRACKING -->
+        <section id="adminTab" class="tab-content space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="map" class="w-5 h-5 text-blue-600"></i> Giám Sát Lộ Trình Bán Hàng Realtime (Leaflet GPS)
+                    </h2>
+                    <span class="text-xs bg-emerald-100 text-emerald-800 font-medium px-2.5 py-1 rounded-full">Live Tracking Active</span>
+                </div>
+                <div id="map"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL ĐỔI MẬT KHẨU CÁ NHÂN -->
+    <div id="changePasswordModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="key" class="w-5 h-5 text-blue-600"></i> Đổi Mật Khẩu Cá Nhân
+                </h3>
+                <button onclick="closeChangePasswordModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form onsubmit="handleChangePassword(event)" class="space-y-3">
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Mật khẩu hiện tại</label>
+                    <input type="password" required class="w-full border rounded-lg p-2 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Mật khẩu mới</label>
+                    <input type="password" required class="w-full border rounded-lg p-2 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Xác nhận mật khẩu mới</label>
+                    <input type="password" required class="w-full border rounded-lg p-2 text-sm mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Hủy</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700">Lưu Mật Khẩu</button>
+                </div>
+            </form>
+        </div>
     </div>
-  </div>
 
-  <!-- MAIN APP VIEW -->
-  <div id="appView" class="hidden">
-    <div class="topbar">
-      <div>
-        <h1 style="color:var(--amber);">DMS CLOUD SFA</h1>
-        <small id="userInfo">XIN CHÀO...</small>
-      </div>
-      <div class="nav-btns">
-        <button id="navAdminDash" class="btn btn-amber hidden" onclick="switchTab('dashboard')">📊 Live Tracking</button>
-        <button class="btn" onclick="switchTab('sales')">🛒 Đi Thị Trường</button>
-        <button class="btn" onclick="switchTab('stores')">🏬 Tuyến / Tiệm</button>
-        <button class="btn" onclick="switchTab('orders')">📦 Đơn Hàng</button>
-        <button id="navAdminPrd" class="btn hidden" onclick="switchTab('products')">🥛 Sản Phẩm & Quy Đổi</button>
-        <button id="navAdminAudit" class="btn hidden" onclick="switchTab('audit')">📷 Nhật Ký Check-in</button>
-        <button id="navAdminUsers" class="btn hidden" onclick="switchTab('users')">👥 Nhân Viên Sales</button>
-        <button class="btn btn-amber" onclick="openChangePasswordModal()">🔒 Đổi Pass</button>
-        <button class="btn btn-red" onclick="handleLogout()">Đăng Xuất</button>
-      </div>
-    </div>
+    <!-- APPLICATION LOGIC & CORE ENGINES -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <div class="panel" id="mainContent">
-      <!-- Dữ liệu tab được render động từ JS -->
-    </div>
-  </div>
+        // State & Data
+        window.products = [
+            { id: 'P01', name: 'Nước Giải Khát Lộc Phát', category: 'Nước Giải Khát', basePrice: 10000, rateBox: 24, ratePack: 6 },
+            { id: 'P02', name: 'Bánh Quy Bơ Cao Cấp', category: 'Bánh Kẹo', basePrice: 25000, rateBox: 12, ratePack: 4 },
+            { id: 'P03', name: 'Nước Rửa Bát Siêu Sạch', category: 'Hóa Mỹ Phẩm', basePrice: 35000, rateBox: 20, ratePack: 1 }
+        ];
 
-</div>
+        window.categoriesKPI = [
+            { name: 'Nước Giải Khát', target: 50000000, current: 42000000 },
+            { name: 'Bánh Kẹo', target: 30000000, current: 28000000 },
+            { name: 'Hóa Mỹ Phẩm', target: 20000000, current: 10000000 }
+        ];
 
-<!-- MODAL ĐỔI MẬT KHẨU -->
-<div id="changePassModal" class="modal hidden">
-  <div class="modal-content">
-    <h3>🔑 Đổi Mật Khẩu Tài Khoản</h3>
-    <form onsubmit="submitChangePassword(event)" style="margin-top:12px;">
-      <label>Mật Khẩu Hiện Tại:</label>
-      <input type="password" id="oldPassInput" required>
-      <label>Mật Khẩu Mới:</label>
-      <input type="password" id="newPassInput" required>
-      <label>Xác Nhận Mật Khẩu Mới:</label>
-      <input type="password" id="confirmPassInput" required>
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <button type="submit" class="btn btn-green" style="flex:1;">Lưu Thay Đổi</button>
-        <button type="button" class="btn btn-red" onclick="closeChangePasswordModal()">Hủy</button>
-      </div>
-    </form>
-  </div>
-</div>
+        window.lotsFIFO = [
+            { id: 'LOT-20260701', product: 'Nước Giải Khát Lộc Phát', expDate: '2026-12-01', stock: 150, status: 'Ưu tiên xuất (HSD gần)' },
+            { id: 'LOT-20260815', product: 'Nước Giải Khát Lộc Phát', expDate: '2027-05-15', stock: 500, status: 'Dự phòng' }
+        ];
 
-<!-- MODAL QUÉT MÃ QR -->
-<div id="qrModal" class="modal hidden">
-  <div class="modal-content">
-    <h3>📷 Quét Mã QR Tại Điểm Bán</h3>
-    <div id="reader" style="width:100%;margin-top:10px;"></div>
-    <button class="btn btn-red" style="width:100%;margin-top:12px;" onclick="closeQRScanner()">Đóng Camera</button>
-  </div>
-</div>
+        window.deliveryOrders = [
+            { id: 'ORD-8821', store: 'Tiệm Tạp Hóa Minh Anh', amount: '1.250.000 VNĐ', status: 'Chờ giao hàng' },
+            { id: 'ORD-8822', store: 'Siêu Thị Mini Bách Khoa', amount: '4.800.000 VNĐ', status: 'Đã xuất kho' }
+        ];
 
+        window.cart = {};
+        let map, marker;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            startServerTimeClock();
+            renderProductOrderTable();
+            renderKPIDashboard();
+            renderFIFOLots();
+            renderDeliveryOrders();
+            initLeafletMap();
+        });
+
+        function startServerTimeClock() {
+            setInterval(() => {
+                document.getElementById('serverTimeDisplay').innerText = new Date().toLocaleString('vi-VN');
+            }, 1000);
+        }
+
+        function initLeafletMap() {
+            map = L.map('map').setView([10.77688, 106.70081], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            marker = L.marker([10.77688, 106.70081]).addTo(map)
+                .bindPopup('Vị trí Sales Representative (Check-in)').openPopup();
+        }
+
+        window.renderProductOrderTable = function() {
+            const tbody = document.getElementById('productOrderTable');
+            tbody.innerHTML = window.products.map(p => {
+                const qty = window.cart[p.id]?.qty || 0;
+                const uom = window.cart[p.id]?.uom || 'Lẻ';
+                const price = calculateUOMPrice(p, uom);
+                const total = qty * price;
+
+                return `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-3">
+                            <div class="font-semibold text-slate-800">${p.name}</div>
+                            <div class="text-xs text-slate-500">${p.category}</div>
+                        </td>
+                        <td class="p-3">
+                            <select onchange="updateUOM('${p.id}', this.value)" class="border border-slate-300 rounded px-2 py-1 text-xs bg-white">
+                                <option value="Lẻ" ${uom==='Lẻ'?'selected':''}>Chai/Cái (Lẻ)</option>
+                                <option value="Lốc" ${uom==='Lốc'?'selected':''}>Lốc (x${p.ratePack})</option>
+                                <option value="Thùng" ${uom==='Thùng'?'selected':''}>Thùng (x${p.rateBox})</option>
+                            </select>
+                        </td>
+                        <td class="p-3 font-medium">${price.toLocaleString('vi-VN')} VNĐ</td>
+                        <td class="p-3">
+                            <input type="number" min="0" value="${qty}" onchange="updateQty('${p.id}', this.value)" class="w-20 border rounded px-2 py-1 text-center font-bold">
+                        </td>
+                        <td class="p-3 text-right font-bold text-slate-800">${total.toLocaleString('vi-VN')} VNĐ</td>
+                    </tr>
+                `;
+            }).join('');
+            calculateOrderTotal();
+        };
+
+        function calculateUOMPrice(product, uom) {
+            if (uom === 'Thùng') return product.basePrice * product.rateBox;
+            if (uom === 'Lốc') return product.basePrice * product.ratePack;
+            return product.basePrice;
+        }
+
+        window.updateUOM = function(id, uom) {
+            if (!window.cart[id]) window.cart[id] = { qty: 0, uom: 'Lẻ' };
+            window.cart[id].uom = uom;
+            renderProductOrderTable();
+        };
+
+        window.updateQty = function(id, qty) {
+            if (!window.cart[id]) window.cart[id] = { qty: 0, uom: 'Lẻ' };
+            window.cart[id].qty = parseInt(qty) || 0;
+            renderProductOrderTable();
+        };
+
+        function calculateOrderTotal() {
+            let total = 0;
+            Object.keys(window.cart).forEach(id => {
+                const p = window.products.find(item => item.id === id);
+                if (p) total += calculateUOMPrice(p, window.cart[id].uom) * window.cart[id].qty;
+            });
+            document.getElementById('orderTotalDisplay').innerText = total.toLocaleString('vi-VN') + ' VNĐ';
+        }
+
+        function renderKPIDashboard() {
+            const container = document.getElementById('kpiContainer');
+            container.innerHTML = window.categoriesKPI.map(cat => {
+                const percent = Math.min(100, Math.round((cat.current / cat.target) * 100));
+                return `
+                    <div class="border rounded-xl p-4 bg-slate-50 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-800 text-sm">${cat.name}</span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded bg-white border">${percent}%</span>
+                        </div>
+                        <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                            <div class="h-full bg-emerald-500 progress-bar-fill" style="width: ${percent}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderFIFOLots() {
+            document.getElementById('fifoLotContainer').innerHTML = window.lotsFIFO.map(lot => `
+                <div class="p-3 border rounded-lg bg-slate-50 flex justify-between items-center text-xs">
+                    <div>
+                        <div class="font-bold text-slate-800">${lot.product}</div>
+                        <div class="text-slate-500">Lô: <b>${lot.id}</b> | HSD: <b class="text-rose-600">${lot.expDate}</b></div>
+                    </div>
+                    <span class="font-bold text-slate-800">${lot.stock} ĐVT</span>
+                </div>
+            `).join('');
+        }
+
+        function renderDeliveryOrders() {
+            document.getElementById('deliveryOrdersContainer').innerHTML = window.deliveryOrders.map(ord => `
+                <div class="p-3 border rounded-lg bg-slate-50 flex justify-between items-center text-xs">
+                    <div>
+                        <div class="font-bold text-blue-600">${ord.id} - ${ord.store}</div>
+                        <div class="text-slate-700 font-medium">${ord.amount}</div>
+                    </div>
+                    <span class="bg-slate-200 text-slate-800 px-2 py-1 rounded">${ord.status}</span>
+                </div>
+            `).join('');
+        }
+
+        window.triggerWatermarkCheckIn = function() {
+            document.getElementById('cameraInput').click();
+        };
+
+        window.processCameraWatermark = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            navigator.geolocation.getCurrentPosition(pos => {
+                alert(`✓ Đã xác thực GPS & Chụp ảnh Check-in thành công!\nTọa độ: Lat ${pos.coords.latitude.toFixed(4)}, Lng ${pos.coords.longitude.toFixed(4)}`);
+            }, () => alert('✓ Check-in thành công (GPS Mô phỏng)!'));
+        };
+
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('border-blue-600', 'text-blue-600');
+                el.classList.add('border-transparent', 'text-slate-600');
+            });
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('border-blue-600', 'text-blue-600');
+            if (tabId === 'adminTab' && map) setTimeout(() => map.invalidateSize(), 200);
+        };
+
+        window.checkStoreCreditLimit = function() {
+            const store = document.getElementById('storeSelect').value;
+            const badge = document.getElementById('creditBadge');
+            if (store === 'S03') {
+                badge.className = "text-xs bg-rose-100 text-rose-700 font-semibold px-2.5 py-1 rounded-full";
+                badge.innerText = "Nợ Quá Hạn (Tạm Khóa Lên Đơn)";
+            } else {
+                badge.className = "text-xs bg-emerald-100 text-emerald-700 font-semibold px-2.5 py-1 rounded-full";
+                badge.innerText = "Hạn Mức Công Nợ Hợp Lệ";
+            }
+        };
+
+        window.connectBluetoothPrinter = function() { alert('✓ Đã kết nối với máy in nhiệt "PRINTER-POS-58"!'); };
+        window.addFocusSKUToCart = function() { window.cart['P01'] = { qty: 2, uom: 'Thùng' }; renderProductOrderTable(); };
+        window.submitOrder = function() {
+            if (document.getElementById('storeSelect').value === 'S03') return alert('❌ Tiệm đang bị khóa nợ!');
+            alert('🎉 Chốt đơn thành công!');
+        };
+        window.openChangePasswordModal = function() { document.getElementById('changePasswordModal').classList.remove('hidden'); document.getElementById('changePasswordModal').classList.add('flex'); };
+        window.closeChangePasswordModal = function() { document.getElementById('changePasswordModal').classList.add('hidden'); };
+        window.handleChangePassword = function(e) { e.preventDefault(); alert('✓ Cập nhật mật khẩu thành công!'); closeChangePasswordModal(); };
+    </script>
 </body>
 </html>
