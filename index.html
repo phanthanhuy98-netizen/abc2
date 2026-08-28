@@ -3,14 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hệ Thống DMS/SFA Enterprise Full - Phân Loại Ngành Hàng</title>
+<title>Hệ Thống DMS/SFA - Giám Sát Kỷ Luật Sales Siêu Chặt Chẽ</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#12213D">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Leaflet OpenStreetMap CSS & JS -->
+<!-- Leaflet CSS & JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- HTML5 QR Code Scanner -->
+<script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
   :root { --navy:#12213D; --amber:#FCA311; --paper:#F6F1E6; --line:#D9D0BC; --muted:#6B6558; --green:#2D6A4F; --red:#C1121F; }
@@ -49,6 +51,8 @@
   .cat-filter{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;}
   .cat-chip{padding:4px 10px;background:#EFE7D6;border-radius:16px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
   .cat-chip.active{background:var(--navy);color:#fff;}
+  .watermark-img{max-width:100%;border-radius:8px;margin-top:6px;border:2px solid var(--navy);}
+  .alert-box{background:#F8D7DA;color:var(--red);padding:10px;border-radius:8px;font-size:12px;margin-bottom:10px;font-weight:600;}
 </style>
 
 <script type="module">
@@ -71,20 +75,22 @@
 
   let currentUser = null;
   let currentTab = 'sales'; 
-  let stores = [], orders = [], users = [], checkins = [], products = [], promos = [];
+  let stores = [], orders = [], users = [], checkins = [], products = [], promos = [], posmAudits = [];
   let currentCart = [];
   let activeVisitedStore = null;
   let selectedCategoryFilter = 'Tất cả';
+  let html5QrScanner = null;
 
-  // LẮNG NGHE DATA REALTIME
+  // REALTIME LISTENERS
   onSnapshot(collection(db, "stores"), snap => { stores = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "orders"), snap => { orders = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "users"), snap => { users = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "checkins"), snap => { checkins = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "products"), snap => { products = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
   onSnapshot(collection(db, "promos"), snap => { promos = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
+  onSnapshot(collection(db, "posmAudits"), snap => { posmAudits = snap.docs.map(d => ({id:d.id, ...d.data()})); renderUI(); });
 
-  // HAVERSINE GPS
+  // HAVERSINE CALCULATOR
   function getDistanceMeters(lat1, lon1, lat2, lon2) {
     if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
     const R = 6371e3;
@@ -98,7 +104,43 @@
     return R * c;
   }
 
-  // 1. ĐĂNG NHẬP (HỖ TRỢ MÃ NHÂN VIÊN)
+  // WATERMARK ENGINE
+  function createWatermarkedImage(file, infoText) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 800;
+          const scale = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext("2d");
+          
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+          ctx.fillRect(0, canvas.height - 70, canvas.width, 70);
+          
+          ctx.fillStyle = "#FCA311";
+          ctx.font = "bold 16px Inter, sans-serif";
+          ctx.fillText(`📍 DMS STAMP: ${infoText.storeName}`, 15, canvas.height - 45);
+          
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "12px Inter, sans-serif";
+          ctx.fillText(`Mã NV: ${infoText.salesCode} | NV: ${infoText.salesName} | GPS: ${infoText.lat.toFixed(5)}, ${infoText.lng.toFixed(5)}`, 15, canvas.height - 25);
+          ctx.fillText(`Thời gian: ${new Date().toLocaleString('vi-VN')}`, 15, canvas.height - 8);
+          
+          resolve(canvas.toDataURL("image/jpeg", 0.7));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // 1. LOGIN
   window.handleLogin = function(e) {
     e.preventDefault();
     const u = document.getElementById('logUser').value.trim();
@@ -108,12 +150,8 @@
       currentUser = { name: 'Admin Quản Lý', username: 'admin', code: 'NV-ADMIN', role: 'admin' };
     } else {
       const found = users.find(x => x.username === u && x.password === p);
-      if (found) {
-        currentUser = found;
-      } else {
-        alert("Sai tài khoản hoặc mật khẩu!");
-        return;
-      }
+      if (found) currentUser = found;
+      else return alert("Sai tài khoản hoặc mật khẩu!");
     }
     
     document.getElementById('loginView').classList.add('hidden');
@@ -128,79 +166,129 @@
     document.getElementById('appView').classList.add('hidden');
   };
 
-  // 2. CHECK-IN GPS GEOFENCING (<100m)
+  // 2. CHECK-IN SIẾT BÁN KÍNH 30M
   window.doCheckinWithPhoto = function(storeId) {
     const store = stores.find(s => s.id === storeId);
     if (!store) return;
 
+    const fileInput = document.getElementById(`img_${store.id}`);
+    if (!fileInput || !fileInput.files[0]) {
+      return alert("⛔ BẮT BUỘC CHỤP ẢNH TẠI ĐIỂM BÁN!\nBạn chưa chụp ảnh trực tiếp từ Camera.");
+    }
+
     navigator.geolocation.getCurrentPosition(async pos => {
       const userLat = pos.coords.latitude;
       const userLng = pos.coords.longitude;
+      const accuracy = pos.coords.accuracy;
+
+      if (accuracy > 50) {
+        alert(`⚠️ Tín hiệu GPS không chính xác (Độ lệch ±${Math.round(accuracy)}m). Vui lòng ra không gian thoáng hơn!`);
+      }
       
       if (store.lat && store.lng) {
         const distance = getDistanceMeters(userLat, userLng, store.lat, store.lng);
-        if (distance > 100) {
-          alert(`❌ CHECK-IN THẤT BẠI!\nKhoảng cách hiện tại: ${Math.round(distance)}m.\nBạn phải đứng cách cửa hàng dưới 100m!`);
+        if (distance > 30) {
+          alert(`⛔ CHECK-IN THẤT BẠI!\n\n- Khoảng cách hiện tại: ${Math.round(distance)}m.\n- Quy định kỷ luật: Bắt buộc dưới 30m!\n- Bạn đang ở quá xa điểm bán.`);
           return;
         }
       }
 
-      const fileInput = document.getElementById(`img_${store.id}`);
-      let photoData = "";
-      if (fileInput && fileInput.files[0]) {
-        photoData = await compressImage(fileInput.files[0]);
-      }
+      const photoData = await createWatermarkedImage(fileInput.files[0], {
+        storeName: store.name,
+        salesCode: currentUser.code || 'NV001',
+        salesName: currentUser.name,
+        lat: userLat,
+        lng: userLng
+      });
 
       await addDoc(collection(db, "checkins"), {
         salesName: currentUser.name, salesCode: currentUser.code || 'NV001', salesUser: currentUser.username, 
         storeName: store.name, storeId: store.id,
-        lat: userLat, lng: userLng, photo: photoData, status: 'Checked-in',
+        lat: userLat, lng: userLng, photo: photoData, status: 'Checked-in (Đạt <30m)',
         createdAt: serverTimestamp()
       });
 
       activeVisitedStore = store;
-      alert(`✅ CHECK-IN THÀNH CÔNG tại tiệm ${store.name}!`);
+      alert(`✅ CHECK-IN THÀNH CÔNG!\nĐã xác thực vị trí cách tiệm ${store.name} dưới 30m.`);
       renderUI();
     }, () => {
-      alert("⚠️ Không thể lấy vị trí GPS! Hãy bật vị trí trên điện thoại.");
+      alert("⛔ LỖI GPS: Không thể lấy vị trí! Hãy kiểm tra cài đặt GPS trên điện thoại.");
+    }, { enableHighAccuracy: true, timeout: 10000 });
+  };
+
+  // 3. QUÉT MÃ QR CHECK-IN
+  window.startQRScanner = function(storeId) {
+    const store = stores.find(s => s.id === storeId);
+    document.getElementById('qrModal').classList.remove('hidden');
+    
+    html5QrScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+    html5QrScanner.render(async (decodedText) => {
+      if (decodedText === store.id || decodedText === store.name) {
+        html5QrScanner.clear();
+        document.getElementById('qrModal').classList.add('hidden');
+        alert(`✅ QUÉT MÃ QR THÀNH CÔNG!\nXác nhận đúng mã QR dán tại tiệm: ${store.name}`);
+        activeVisitedStore = store;
+        renderUI();
+      } else {
+        alert(`❌ LỖI MÃ QR!\nMã QR này (${decodedText}) không khớp với cửa hàng ${store.name}.`);
+      }
     });
   };
 
+  window.closeQRScanner = function() {
+    if (html5QrScanner) html5QrScanner.clear();
+    document.getElementById('qrModal').classList.add('hidden');
+  };
+
+  // 4. CHẤM ĐIỂM TRƯNG BÀY (POSM AUDIT)
+  window.submitPOSMAudit = async function(e) {
+    e.preventDefault();
+    if (!activeVisitedStore) return alert("Chưa chọn điểm bán!");
+    
+    const fileInput = document.getElementById('posmImg');
+    if (!fileInput || !fileInput.files[0]) return alert("Vui lòng chụp ảnh quầy kệ trưng bày!");
+
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const photoData = await createWatermarkedImage(fileInput.files[0], {
+        storeName: activeVisitedStore.name,
+        salesCode: currentUser.code || 'NV001',
+        salesName: currentUser.name,
+        lat: pos.coords.latitude, lng: pos.coords.longitude
+      });
+
+      const progName = document.getElementById('posmProg').value;
+      const note = document.getElementById('posmNote').value;
+
+      await addDoc(collection(db, "posmAudits"), {
+        salesName: currentUser.name, salesCode: currentUser.code || 'NV001',
+        storeName: activeVisitedStore.name, programName: progName,
+        photo: photoData, note: note, status: 'Chờ Admin Chấm Điểm',
+        createdAt: serverTimestamp()
+      });
+
+      alert("📸 Đã gửi ảnh Trưng bày quầy kệ về Admin chấm điểm!");
+      document.getElementById('posmForm').reset();
+    });
+  };
+
+  window.gradePOSM = async function(id, status) {
+    await updateDoc(doc(db, "posmAudits", id), { status });
+  };
+
+  // OTHERS
   window.submitNoOrderReason = async function(storeName) {
     const reason = document.getElementById('noOrderReason').value;
-    if (!reason) return alert("Vui lòng chọn lý do không mua!");
+    if (!reason) return alert("Vui lòng chọn lý do!");
 
     await addDoc(collection(db, "checkins"), {
       salesName: currentUser.name, salesCode: currentUser.code || 'NV001', salesUser: currentUser.username, storeName,
       status: 'Không Mua Hàng', reason: reason, createdAt: serverTimestamp()
     });
-    alert("Đã ghi nhận Lý do không mua hàng.");
+    alert("Đã ghi nhận Lý do không mua.");
     activeVisitedStore = null;
     renderUI();
   };
 
-  function compressImage(file) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 600;
-          const scale = MAX_WIDTH / img.width;
-          canvas.width = MAX_WIDTH;
-          canvas.height = img.height * scale;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL("image/jpeg", 0.6));
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // 3. TẠO TÀI KHOẢN NHÂN VIÊN VỚI MÃ NV
   window.addUser = async function(e) {
     e.preventDefault();
     const code = document.getElementById('usCode').value.trim();
@@ -210,13 +298,11 @@
     const role = document.getElementById('usRole').value;
 
     await addDoc(collection(db, "users"), { code, name, username, password, role, createdAt: serverTimestamp() });
-    alert("Đã tạo tài khoản Nhân viên thành công!");
+    alert("Tạo tài khoản Nhân viên thành công!");
     document.getElementById('userForm').reset();
   };
+  window.deleteUser = async function(id) { if(confirm("Xóa tài khoản?")) await deleteDoc(doc(db, "users", id)); };
 
-  window.deleteUser = async function(id) { if(confirm("Xóa tài khoản nhân viên?")) await deleteDoc(doc(db, "users", id)); };
-
-  // 4. GIỎ HÀNG & LÊN ĐƠN HÀNG
   window.addToCart = function(productId) {
     const prd = products.find(p => p.id === productId);
     if (!prd || prd.stock <= 0) return alert("Sản phẩm đã HẾT HÀNG!");
@@ -265,7 +351,7 @@
 
   window.submitOrder = async function(e) {
     e.preventDefault();
-    if (currentCart.length === 0) return alert("Vui lòng chọn sản phẩm vào giỏ!");
+    if (currentCart.length === 0) return alert("Vui lòng chọn sản phẩm!");
     
     const storeName = document.getElementById('ordStore').value;
     const storeObj = stores.find(s => s.name === storeName);
@@ -312,7 +398,6 @@
     } catch (err) { alert("Lỗi tạo đơn: " + err); }
   };
 
-  // 5. QUẢN LÝ SẢN PHẨM & NGÀNH HÀNG
   window.addProduct = async function(e) {
     e.preventDefault();
     const code = document.getElementById('prdCode').value.trim();
@@ -322,16 +407,12 @@
     const stock = Number(document.getElementById('prdStock').value);
 
     await addDoc(collection(db, "products"), { code, name, category, price, stock, createdAt: serverTimestamp() });
-    alert("Đã thêm sản phẩm mới vào Kho!");
+    alert("Đã thêm sản phẩm mới!");
     document.getElementById('prdForm').reset();
   };
 
   window.deleteProduct = async function(id) { if(confirm("Xóa SP?")) await deleteDoc(doc(db, "products", id)); };
-
-  window.filterCategory = function(cat) {
-    selectedCategoryFilter = cat;
-    renderUI();
-  };
+  window.filterCategory = function(cat) { selectedCategoryFilter = cat; renderUI(); };
 
   window.addPromo = async function(e) {
     e.preventDefault();
@@ -351,7 +432,7 @@
     document.getElementById('promoForm').reset();
   };
 
-  window.deletePromo = async function(id) { if(confirm("Xóa khuyến mãi?")) await deleteDoc(doc(doc, "promos", id)); };
+  window.deletePromo = async function(id) { if(confirm("Xóa khuyến mãi?")) await deleteDoc(doc(db, "promos", id)); };
 
   window.addStore = async function(e) {
     e.preventDefault();
@@ -364,7 +445,7 @@
     const lng = Number(document.getElementById('stLng').value || 0);
 
     await addDoc(collection(db, "stores"), { name, address, phone, routeDay, creditLimit, lat, lng, createdAt: serverTimestamp() });
-    alert("Đã thêm điểm bán vào tuyến!");
+    alert("Đã thêm điểm bán mới!");
     document.getElementById('stForm').reset();
   };
 
@@ -395,7 +476,7 @@
     }, 300);
   }
 
-  // 6. GIAO DIỆN CHÍNH
+  // RENDER UI
   function renderUI() {
     if (!currentUser) return;
     document.getElementById('userInfo').innerText = `[Mã NV: ${currentUser.code || 'ADMIN'}] ${currentUser.name} (${currentUser.role === 'admin' ? 'Quản Lý Admin' : 'Sales'})`;
@@ -405,11 +486,13 @@
       document.getElementById('navAdminDash').classList.remove('hidden');
       document.getElementById('navAdminPrd').classList.remove('hidden');
       document.getElementById('navAdminPromo').classList.remove('hidden');
+      document.getElementById('navAdminPosm').classList.remove('hidden');
     } else {
       document.getElementById('navAdminUsers').classList.add('hidden');
       document.getElementById('navAdminDash').classList.add('hidden');
       document.getElementById('navAdminPrd').classList.add('hidden');
       document.getElementById('navAdminPromo').classList.add('hidden');
+      document.getElementById('navAdminPosm').classList.add('hidden');
     }
 
     const main = document.getElementById('mainContent');
@@ -420,17 +503,17 @@
       const effectiveRate = totalCheckins > 0 ? ((orders.length / totalCheckins) * 100).toFixed(1) : 0;
 
       main.innerHTML = `
-        <h2>Báo Cáo KPI & Giám Sát Realtime Bản Đồ</h2>
+        <h2>Giám Sát Kỷ Luật & KPI Realtime</h2>
         <div class="grid">
           <div class="card"><span class="badge">Doanh Số Cloud</span><div class="stat-number">${totalRev.toLocaleString('vi-VN')} đ</div></div>
           <div class="card"><span class="badge">Tổng Đơn Hàng</span><div class="stat-number">${orders.length} đơn</div></div>
           <div class="card"><span class="badge badge-success">Tỷ Lệ Ra Đơn (LPPC)</span><div class="stat-number">${effectiveRate}%</div></div>
-          <div class="card"><span class="badge">Lượt Ghé Thăm GPS</span><div class="stat-number">${totalCheckins} lượt</div></div>
+          <div class="card"><span class="badge badge-pending">Check-in Chuẩn (<30m)</span><div class="stat-number">${totalCheckins} lượt</div></div>
         </div>
 
         <div class="grid" style="margin-top:16px;">
           <div class="card" style="grid-column: span 3;">
-            <h3>🗺️ Bản Đồ Live Tracking Vị Trí Sales Thị Trường</h3>
+            <h3>🗺️ Bản Đồ Live Tracking Vị Trí Check-in Sales</h3>
             <div id="map"></div>
           </div>
         </div>
@@ -442,26 +525,56 @@
       const filteredProducts = selectedCategoryFilter === 'Tất cả' ? products : products.filter(p => p.category === selectedCategoryFilter);
 
       main.innerHTML = `
-        <h2>Đi Thị Trường & Quy Trình Bán Hàng</h2>
+        <h2>Đi Thị Trường & Khóa Kỷ Luật Sales</h2>
         <div class="grid">
           <div class="card">
-            <h3>📍 Danh Sách Điểm Bán Tới Lịch</h3>
+            <h3>📍 Tuyến Điểm Bán Tới Lịch</h3>
+            <div class="alert-box">⚠️ Yêu cầu kỷ luật: Bán kính Check-in < 30m & Chụp ảnh trực tiếp từ Camera.</div>
             ${stores.map(s => `
-              <div style="margin-top:10px;padding-bottom:10px;border-bottom:1px solid #eee;">
+              <div style="margin-top:10px;padding-bottom:12px;border-bottom:1px solid #eee;">
                 <b>${s.name}</b> <span class="badge badge-pending">${s.routeDay||'Cả tuần'}</span><br>
                 <small style="color:var(--muted);">${s.address}</small><br>
-                <small>Hạn mức nợ: <b>${(s.creditLimit||20000000).toLocaleString()}đ</b></small>
-                <input type="file" id="img_${s.id}" accept="image/*" capture="environment" style="margin-top:6px;">
-                <button class="btn btn-amber btn-sm" style="width:100%;margin-top:4px;" onclick="doCheckinWithPhoto('${s.id}')">📍 Check-in GPS (<100m)</button>
+                
+                <label style="font-size:11px;font-weight:600;margin-top:4px;display:block;">Chụp ảnh thực tế quầy tiệm:</label>
+                <!-- KHIẾN BẮT BUỘC MỞ CAMERA TRỰC TIẾP CHỐNG LẤY ẢNH THƯ VIỆN -->
+                <input type="file" id="img_${s.id}" accept="image/*" capture="environment" style="margin-top:2px;">
+                
+                <div style="display:flex;gap:4px;margin-top:6px;">
+                  <button class="btn btn-amber btn-sm" style="flex:1;" onclick="doCheckinWithPhoto('${s.id}')">📍 Check-in GPS (<30m)</button>
+                  <button class="btn btn-green btn-sm" onclick="startQRScanner('${s.id}')">📷 Quét QR</button>
+                </div>
               </div>
             `).join('')}
           </div>
 
           <div class="card" style="grid-column: span 2;">
             ${activeVisitedStore ? `
-              <h3>🛒 Quy Trình Lên Đơn: <span style="color:var(--amber);">${activeVisitedStore.name}</span></h3>
+              <h3>🛒 Đang Làm Việc Tại: <span style="color:var(--amber);">${activeVisitedStore.name}</span></h3>
               
-              <!-- BỘ LỌC NGÀNH HÀNG -->
+              <!-- POSM DISPLAY AUDIT FORM -->
+              <div style="background:#EFE7D6;padding:12px;border-radius:8px;margin-bottom:12px;">
+                <h4>📸 Trưng Bày Quầy Kệ (POSM Audit)</h4>
+                <form id="posmForm" onsubmit="submitPOSMAudit(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <div>
+                    <label>Chương trình:</label>
+                    <select id="posmProg">
+                      <option value="Trưng Bày Kệ Vàng">Trưng Bày Kệ Vàng Vinamilk</option>
+                      <option value="Đầu Kệ Masan">Cắm Cờ Đầu Kệ Masan</option>
+                      <option value="Tủ Thuốc Lá">Góc Tủ Thuốc Lá Premium</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Ảnh quầy kệ (Camera):</label>
+                    <input type="file" id="posmImg" accept="image/*" capture="environment" required>
+                  </div>
+                  <div style="grid-column:span 2;">
+                    <input type="text" id="posmNote" placeholder="Ghi chú thêm về quầy kệ...">
+                    <button class="btn btn-amber btn-sm" style="width:100%;">📷 Gửi Ảnh Trưng Bày Về Admin</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- CATEGORY FILTER -->
               <div class="cat-filter">
                 ${categories.map(c => `
                   <div class="cat-chip ${selectedCategoryFilter===c?'active':''}" onclick="filterCategory('${c}')">${c}</div>
@@ -513,11 +626,30 @@
               </div>
             ` : `
               <div style="text-align:center;padding:40px;color:var(--muted);">
-                <h3>🔒 Chưa chọn Điểm Bán!</h3>
-                <p>Vui lòng chọn nút <b>"📍 Check-in GPS"</b> tại danh sách bên trái để mở quy trình lên đơn hàng.</p>
+                <h3>🔒 Chưa Xác Thực Vị Trí Điểm Bán!</h3>
+                <p>Vui lòng chọn nút <b>"📍 Check-in GPS (<30m)"</b> hoặc <b>"📷 Quét QR"</b> để mở quy trình bán hàng.</p>
               </div>
             `}
           </div>
+        </div>
+      `;
+    }
+    else if (currentTab === 'posm' && currentUser.role === 'admin') {
+      main.innerHTML = `
+        <h2>Quản Lý & Chấm Điểm Trưng Bày Quầy Kệ (POSM Audit)</h2>
+        <div class="grid">
+          ${posmAudits.map(a => `
+            <div class="card">
+              <b>Tiệm: ${a.storeName}</b> <span class="badge ${a.status==='Đạt'?'badge-success':'badge-pending'}">${a.status}</span><br>
+              <small>Sales: [${a.salesCode}] ${a.salesName}</small><br>
+              <small>Chương trình: <b>${a.programName}</b></small>
+              <img src="${a.photo}" class="watermark-img">
+              <div style="margin-top:8px;display:flex;gap:6px;">
+                <button class="btn btn-green btn-sm" style="flex:1;" onclick="gradePOSM('${a.id}', 'Đạt (Duyệt Thưởng)')">Duyệt Đạt</button>
+                <button class="btn btn-red btn-sm" style="flex:1;" onclick="gradePOSM('${a.id}', 'Không Đạt')">Từ Chối</button>
+              </div>
+            </div>
+          `).join('')}
         </div>
       `;
     }
@@ -530,10 +662,8 @@
             <form id="prdForm" onsubmit="addProduct(event)">
               <label>Mã Sản Phẩm (SKU):</label>
               <input type="text" id="prdCode" placeholder="VD: VNM-MILK-100" required>
-              
               <label>Tên Sản Phẩm:</label>
               <input type="text" id="prdName" placeholder="VD: Sữa Tươi Vinamilk 100ml" required>
-              
               <label>Ngành Hàng:</label>
               <select id="prdCategory">
                 <option value="Vinamilk">Vinamilk</option>
@@ -545,13 +675,10 @@
                 <option value="Bánh kẹo">Bánh kẹo</option>
                 <option value="Khác">Khác</option>
               </select>
-
               <label>Đơn Giá (đ):</label>
               <input type="number" id="prdPrice" placeholder="Đơn giá" required>
-              
               <label>Tồn Kho Ban Đầu:</label>
               <input type="number" id="prdStock" placeholder="Tồn kho" required>
-              
               <button class="btn btn-green" style="width:100%;">+ Lưu Sản Phẩm</button>
             </form>
           </div>
@@ -559,7 +686,7 @@
           <div class="card" style="grid-column: span 2;">
             <h3>Danh Sách Sản Phẩm Tồn Kho</h3>
             <table>
-              <thead><tr><th>Mã SP (SKU)</th><th>Ngành Hàng</th><th>Tên Sản Phẩm</th><th>Giá Ban</th><th>Tồn Kho</th><th>Thao Tác</th></tr></thead>
+              <thead><tr><th>Mã SP (SKU)</th><th>Ngành Hàng</th><th>Tên Sản Phẩm</th><th>Giá Bán</th><th>Tồn Kho</th><th>Thao Tác</th></tr></thead>
               <tbody>
                 ${products.map(p => `
                   <tr>
@@ -718,7 +845,7 @@
           <div class="card" style="${currentUser.role==='admin'?'grid-column: span 2;':''}">
             <h3>Danh Sách Điểm Bán</h3>
             <table>
-              <thead><tr><th>Tên Tiệm</th><th>Địa Chỉ</th><th>Hạn Mức Nợ</th><th>Phân Tuyến</th>${currentUser.role==='admin'?'<th>Thao Tác</th>':''}</tr></thead>
+              <thead><tr><th>Tên Tiệm</th><th>Địa Chỉ</th><th>Hạn Mức Nợ</th><th>Phân Tuyến</th>${currentUser.role==='admin'?'<th>Mã QR / Thao Tác</th>':''}</tr></thead>
               <tbody>
                 ${stores.map(s => `
                   <tr>
@@ -726,7 +853,11 @@
                     <td>${s.address}</td>
                     <td><b>${(s.creditLimit||20000000).toLocaleString()} đ</b></td>
                     <td><span class="badge">${s.routeDay||'Cả tuần'}</span></td>
-                    ${currentUser.role==='admin'? `<td><button class="btn btn-red btn-sm" onclick="deleteStore('${s.id}')">Xóa</button></td>`:''}
+                    ${currentUser.role==='admin'? `
+                      <td>
+                        <button class="btn btn-red btn-sm" onclick="deleteStore('${s.id}')">Xóa</button>
+                      </td>
+                    `:''}
                   </tr>
                 `).join('')}
               </tbody>
@@ -755,12 +886,13 @@
   <div id="appView" class="hidden">
     <div class="topbar">
       <div>
-        <h1>Hệ Thống DMS Enterprise Full - Phân Loại Ngành Hàng</h1>
+        <h1>Hệ Thống DMS Enterprise Full - Giám Sát Kỷ Luật Sales</h1>
         <div style="font-size:12px;">Xin chào: <b id="userInfo" style="color:var(--amber);">---</b></div>
       </div>
       <div class="nav-btns">
         <button id="navAdminDash" class="btn btn-amber hidden" onclick="switchTab('dashboard')">📊 Báo Cáo & Map</button>
         <button class="btn" onclick="switchTab('sales')">📍 Đi Thị Trường</button>
+        <button id="navAdminPosm" class="btn btn-amber hidden" onclick="switchTab('posm')">📸 Chấm Trưng Bày</button>
         <button id="navAdminPromo" class="btn btn-amber hidden" onclick="switchTab('promos')">🎁 Khuyến Mãi</button>
         <button id="navAdminPrd" class="btn btn-amber hidden" onclick="switchTab('products')">📦 Sản Phẩm</button>
         <button class="btn btn-amber" onclick="switchTab('orders')">🛒 Đơn Hàng & Nợ</button>
@@ -773,6 +905,15 @@
     <div class="panel">
       <div id="mainContent">Đang tải dữ liệu Enterprise Cloud...</div>
     </div>
+  </div>
+</div>
+
+<!-- MODAL QUÉT MÃ QR -->
+<div id="qrModal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;">
+  <div style="background:#fff;padding:20px;border-radius:12px;max-width:400px;width:90%;">
+    <h3>📷 Đang quét mã QR điểm bán...</h3>
+    <div id="reader" style="width:100%;margin-top:10px;"></div>
+    <button class="btn btn-red" style="width:100%;margin-top:10px;" onclick="closeQRScanner()">Đóng Cửa Sổ QR</button>
   </div>
 </div>
 
