@@ -18,7 +18,7 @@
   html,body{margin:0;padding:0;}
   body{font-family:'Inter',sans-serif;background:var(--navy);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
   @keyframes fadeInUp{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
-  @keyframes pulseDot{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+  
   .app{max-width:1180px;margin:0 auto;padding:20px;}
   h1,h2,h3,.display{font-family:'Oswald',sans-serif; letter-spacing:0.02em; text-transform:uppercase;}
   .mono{font-family:'Space Mono',monospace;}
@@ -87,19 +87,22 @@
   select,input[type=text],input[type=number],textarea{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);font-family:'Inter';font-size:14px;background:#fff;}
   textarea{resize:vertical;min-height:64px;}
 
-  .btn-primary{background:var(--navy);color:var(--paper);border:none;padding:11px 18px;border-radius:9px;font-weight:700;font-size:13.5px;cursor:pointer;text-transform:uppercase;}
+  .btn-primary{background:var(--navy);color:var(--paper);border:none;padding:11px 18px;border-radius:999px;font-weight:700;font-size:13.5px;cursor:pointer;text-transform:uppercase;}
   .btn-primary:hover{background:var(--navy2);}
   .btn-amber{background:var(--amber);color:var(--navy);}
   .btn-amber:hover{background:var(--amber-dark);color:#fff;}
-  .btn-outline{background:transparent;border:1.5px solid var(--navy);color:var(--navy);padding:10px 16px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;}
+  .btn-outline{background:transparent;border:1.5px solid var(--navy);color:var(--navy);padding:8px 14px;border-radius:999px;font-weight:700;font-size:12.5px;cursor:pointer;}
   .btn-text{background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;text-decoration:underline;padding:0;}
 
+  .progress-bar{height:8px;background:var(--line);border-radius:999px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--green);transition:width 0.3s ease;}
+
   .manifest{display:flex;flex-direction:column;gap:14px;}
-  .ticket{position:relative;background:#fff;border-radius:12px;display:flex;box-shadow:0 6px 16px -8px rgba(0,0,0,0.25);overflow:hidden;}
+  .ticket{position:relative;background:#fff;border-radius:12px;display:flex;box-shadow:0 6px 16px -8px rgba(0,0,0,0.15);overflow:hidden;border:1px solid var(--line);}
   .ticket-main{flex:1;padding:16px;}
   .ticket-stub{width:78px;flex-shrink:0;background:var(--navy);color:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Oswald';font-size:11px;text-align:center;padding:6px;position:relative;}
   .ticket-stub .num{font-size:20px;font-weight:700;}
-  .perforation{position:absolute;left:78px;top:0;bottom:0;width:0;border-left:2px dashed rgba(255,255,255,0.5);}
+  .perforation{position:absolute;left:78px;top:0;bottom:0;width:0;border-left:2px dashed rgba(255,255,255,0.4);}
   .ticket.visited .ticket-stub{background:var(--green);}
   .t-name{font-weight:700;font-size:15px;color:var(--ink);display:flex;align-items:center;flex-wrap:wrap;gap:4px;}
   .t-addr{font-size:12.5px;color:var(--muted);margin-top:2px;}
@@ -122,6 +125,12 @@
   .attend-box .a-time{font-family:'Space Mono';font-size:20px;margin-top:2px;}
   .attend-box .a-status{font-size:12px;margin-top:4px;color:#A9B3C9;}
 
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:600px){ .grid-2{grid-template-columns:1fr;} }
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+  .card h3{margin:0 0 10px;font-size:15px;color:var(--navy);}
+
   .empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
   .empty-state .big{font-size:36px;margin-bottom:8px;}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:var(--paper);padding:12px 20px;border-radius:10px;font-size:13.5px;box-shadow:0 10px 30px rgba(0,0,0,0.3);z-index:999;opacity:0;pointer-events:none;transition:all 0.25s;}
@@ -140,7 +149,7 @@
 <script>
 const KEYS = { employees:'stt:employees', stores:'stt:stores', routes:'stt:routes', checkins:'stt:checkins', attendance:'stt:attendance', products:'stt:products', orders:'stt:orders' };
 
-// Seed Data được bổ sung Mã Khách Hàng (code) và Mã Sản Phẩm (sku)
+// Seed Data ĐẦY ĐỦ ban đầu + Bổ sung Mã KH (code) & Mã SP (sku)
 const SEED_EMPLOYEES = [
   {id:'nv1', name:'Nguyễn Văn An', role:'Sales ngoài thị trường', phone:'0901 234 567'},
   {id:'nv2', name:'Trần Thị Bình', role:'Sales ngoài thị trường', phone:'0902 345 678'},
@@ -152,13 +161,23 @@ const SEED_STORES = [
   {id:'s2', code:'KH002', name:'Siêu thị mini Hồng Phát', address:'45 Trần Hưng Đạo, Đồng Xoài', lat:11.5390, lng:106.9025, category:'vip'},
   {id:'s3', code:'KH003', name:'Cửa hàng Anh Tuấn', address:'8 Nguyễn Huệ, Đồng Xoài', lat:11.5310, lng:106.8950, category:'normal'},
   {id:'s4', code:'KH004', name:'Tạp hóa Thanh Thảo', address:'21 Lê Duẩn, Đồng Xoài', lat:11.5420, lng:106.9060, category:'potential'},
+  {id:'s5', code:'KH005', name:'Cửa hàng Bách Hóa Xanh 2', address:'88 ĐT741, Đồng Xoài', lat:11.5280, lng:106.8890, category:'vip'},
+  {id:'s6', code:'KH006', name:'Tạp hóa Hùng Thịnh', address:'102 Trương Công Định, Đồng Xoài', lat:11.5375, lng:106.9110, category:'normal'},
 ];
 
 const SEED_PRODUCTS = [
-  {id:'p1', sku:'SP-NG330', name:'Nước ngọt lon 330ml (thùng 24 lon)', price:180000},
+  {id:'p1', sku:'SP-NG330', name:'Nước ngọt lon 330ml (thùng 24)', price:180000},
   {id:'p2', sku:'SP-MG30', name:'Mì gói thùng 30 gói', price:120000},
   {id:'p3', sku:'SP-BQ10', name:'Bánh quy hộp', price:45000},
+  {id:'p4', sku:'SP-NS500', name:'Nước suối 500ml (thùng 24)', price:90000},
+  {id:'p5', sku:'SP-SNK1', name:'Snack khoai tây gói lớn', price:15000},
 ];
+
+const SEED_ROUTES = {
+  nv1: ['s1', 's2', 's3', 's4'],
+  nv2: ['s5', 's6'],
+  nv3: []
+};
 
 function getStored(key, seedData) {
   try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : seedData; } catch(e) { return seedData; }
@@ -174,7 +193,7 @@ function haversine(lat1,lon1,lat2,lon2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 function fmtTime(ts){ return new Date(ts).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}); }
-function fmtDate(ts){ return new Date(ts).toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit'}); }
+function fmtDate(ts){ return new Date(ts).toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}); }
 function fmtVND(n){ return (Number(n)||0).toLocaleString('vi-VN') + 'đ'; }
 function todayKey(){ return new Date().toISOString().slice(0,10); }
 function initials(name){ return name.split(' ').slice(-2).map(w=>w[0]).join('').toUpperCase(); }
@@ -203,13 +222,14 @@ let STATE = {
   managerTab:'dashboard',
   employees: getStored(KEYS.employees, SEED_EMPLOYEES),
   stores: getStored(KEYS.stores, SEED_STORES),
-  routes: getStored(KEYS.routes, {}),
+  routes: getStored(KEYS.routes, SEED_ROUTES),
   checkins: getStored(KEYS.checkins, []),
   attendance: getStored(KEYS.attendance, []),
   products: getStored(KEYS.products, SEED_PRODUCTS),
   orders: getStored(KEYS.orders, []),
   detailStoreId:null,
   detailDraft:{outcome:'', note:'', qty:{}},
+  storeFilter:'',
 };
 
 function todaysCheckins(empId){
@@ -250,7 +270,7 @@ function topbarHtml(){
 }
 
 function footerHtml(){
-  return `<div class="footer-note">Dữ liệu đã được tự động lưu vào Trình duyệt (LocalStorage).</div>`;
+  return `<div class="footer-note">Dữ liệu thử nghiệm tự động lưu vào Trình duyệt (LocalStorage).</div>`;
 }
 
 function bodyHtml(){
@@ -263,18 +283,18 @@ function bodyHtml(){
 function loginHtml(){
   return `
   <div class="login-wrap">
-    <h2>Đăng nhập</h2>
-    <div class="login-sub">Chọn vai trò để vào làm việc — không cần mật khẩu.</div>
+    <h2>Đăng nhập Hệ Thống</h2>
+    <div class="login-sub">Chọn vai trò làm việc để bắt đầu thao tác</div>
     <div class="role-grid">
       <div class="role-card" data-action="pick-role" data-role="employee">
         <div class="icon">🧭</div>
         <div class="rt">Nhân viên Sales</div>
-        <div class="rd">Xem tuyến, ghé quầy có GPS, ghi kết quả, đặt hàng</div>
+        <div class="rd">Xem tuyến, ghé quầy có GPS, ghi kết quả & đặt hàng</div>
       </div>
       <div class="role-card" data-action="pick-role" data-role="manager">
         <div class="icon">📋</div>
-        <div class="rt">Quản lý</div>
-        <div class="rd">Chia tuyến, quản lý Mã KH/Mã SP, xem báo cáo</div>
+        <div class="rt">Quản lý tuyến</div>
+        <div class="rd">Phân tuyến, quản lý Mã KH/Mã SP, xem báo cáo</div>
       </div>
     </div>
     <div id="loginSub"></div>
@@ -289,9 +309,9 @@ function employeePickHtml(){
           <div class="avatar">${initials(e.name)}</div>
           <div>
             <div class="en">${esc(e.name)}</div>
-            <div class="er">${esc(e.role)}</div>
+            <div class="er">${esc(e.role)} — ${esc(e.phone)}</div>
           </div>
-        </div>`).join('') || `<div style="padding:14px;color:var(--muted);font-size:13px;">Chưa có nhân viên nào.</div>`}
+        </div>`).join('')}
     </div>
     <div class="back-link" data-action="back-role">← Quay lại chọn vai trò</div>
   `;
@@ -309,26 +329,26 @@ function employeeHtml(){
   return `
     <div class="section-head">
       <div>
-        <h2>Xin chào, ${esc(emp.name.split(' ').slice(-1)[0])}</h2>
+        <h2>Xin chào, ${esc(emp.name)}</h2>
         <div class="sub">${fmtDate(Date.now())}</div>
       </div>
     </div>
 
     <div class="attend-box">
       <div>
-        <div class="a-label">Trạng thái ca làm</div>
+        <div class="a-label">Trạng thái ca làm việc</div>
         <div class="a-time">${isShiftOn ? 'Đang trong ca' : 'Chưa vào ca'}</div>
-        <div class="a-status">${lastAttend ? (lastAttend.type==='in'?'Vào ca lúc '+fmtTime(lastAttend.time):'Tan ca lúc '+fmtTime(lastAttend.time)) : 'Chưa chấm công hôm nay'}</div>
+        <div class="a-status">${lastAttend ? (lastAttend.type==='in'?'Vào ca lúc '+fmtTime(lastAttend.time):'Tan ca lúc '+fmtTime(lastAttend.time)) : 'Chưa điểm danh hôm nay'}</div>
       </div>
       <button class="btn-primary ${isShiftOn?'':'btn-amber'}" data-action="toggle-shift">
-        ${isShiftOn ? 'Tan ca' : 'Vào ca'}
+        ${isShiftOn ? 'Tan ca làm' : 'Vào ca làm'}
       </button>
     </div>
 
     <div class="section-head">
       <div>
-        <h2 style="font-size:16px;">Tuyến hôm nay</h2>
-        <div class="sub">${visitedIds.size}/${stores.length} quầy đã ghé</div>
+        <h2 style="font-size:16px;">Tuyến quầy hôm nay</h2>
+        <div class="sub">${visitedIds.size}/${stores.length} quầy đã hoàn thành</div>
       </div>
     </div>
     ${stores.length ? `
@@ -337,7 +357,7 @@ function employeeHtml(){
       </div>` : ''}
 
     <div class="manifest">
-      ${stores.length===0 ? emptyState('🗺️','Chưa có tuyến được giao','Liên hệ quản lý để được chia tuyến hôm nay.') :
+      ${stores.length===0 ? emptyState('🗺️','Chưa có tuyến được phân','Vui lòng liên hệ quản lý để phân tuyến cho tài khoản này.') :
         stores.map((s,i)=>{
           const c = checkins.find(c=>c.storeId===s.id);
           const isOpen = STATE.detailStoreId===s.id;
@@ -356,15 +376,15 @@ function employeeHtml(){
                 ${esc(s.name)} 
                 <span class="cat-chip ${s.category||'normal'}" style="margin-left:6px;">${catLabel(s.category)}</span>
               </div>
-              <div class="t-addr">${esc(s.address)}</div>
+              <div class="t-addr">📍 ${esc(s.address)}</div>
               <div class="t-meta">
-                ${c ? `<span>🕒 ${fmtTime(c.time)}</span><span>📍 cách ${Math.round(c.distance)}m</span>${orderTotal? `<span>💰 ${fmtVND(orderTotal)}</span>`:''}` : `<span>Chưa ghé</span>`}
+                ${c ? `<span>🕒 Ghé lúc: ${fmtTime(c.time)}</span><span>📍 Cách quầy: ${Math.round(c.distance)}m</span>${orderTotal? `<span>💰 Đơn: ${fmtVND(orderTotal)}</span>`:''}` : `<span>Trạng thái: Chưa ghé</span>`}
               </div>
               ${c && c.outcome ? `<div class="outcome-tag ${outcomeClass(c.outcome)}">${outcomeLabel(c.outcome)}</div>` : ''}
               ${c && c.note ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px;">📝 ${esc(c.note)}</div>` : ''}
               <div class="t-actions">
                 ${!c ? `<button class="btn-amber btn-primary" data-action="checkin" data-store="${s.id}">Ghé quầy (GPS)</button>` : 
-                       `<button class="btn-outline" data-action="toggle-detail" data-store="${s.id}">${isOpen? 'Đóng' : 'Cập nhật đơn / Kết quả'}</button>`}
+                       `<button class="btn-outline" data-action="toggle-detail" data-store="${s.id}">${isOpen? 'Đóng' : 'Sửa kết quả / Đặt hàng'}</button>`}
                 <a href="${mapsUrl}" target="_blank" rel="noopener" class="btn-outline" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🗺️ Chỉ đường</a>
               </div>
               ${isOpen ? detailPanelHtml(s, emp) : ''}
@@ -382,21 +402,21 @@ function detailPanelHtml(store, emp){
   return `
     <div class="detail-panel">
       <div>
-        <div class="field-label">Kết quả ghé quầy</div>
-        <select data-action="detail-outcome" data-store="${store.id}">
+        <div class="field-label">Ghi nhận kết quả cuộc ghé</div>
+        <select data-action="detail-outcome">
           <option value="" ${!d.outcome?'selected':''}>— Chọn kết quả —</option>
           <option value="mua" ${d.outcome==='mua'?'selected':''}>Đã mua hàng</option>
           <option value="khong" ${d.outcome==='khong'?'selected':''}>Không mua</option>
           <option value="dong" ${d.outcome==='dong'?'selected':''}>Quầy đóng cửa</option>
-          <option value="hen" ${d.outcome==='hen'?'selected':''}>Hẹn quay lại</option>
+          <option value="hen" ${d.outcome==='hen'?'selected':''}>Hẹn quay lại sau</option>
         </select>
       </div>
       <div>
-        <div class="field-label">Ghi chú</div>
-        <textarea id="detail-note" placeholder="VD: Chủ quầy hỏi giá sỉ...">${esc(d.note)}</textarea>
+        <div class="field-label">Ghi chú phản hồi của chủ quầy</div>
+        <textarea id="detail-note" placeholder="Nhập chi tiết ý kiến khách hàng...">${esc(d.note)}</textarea>
       </div>
       <div>
-        <div class="field-label">Lên đơn hàng trực tiếp</div>
+        <div class="field-label">Lên đơn hàng trực tiếp (nếu có)</div>
         <div class="qty-list">
           ${STATE.products.map(p=>`
             <div class="qty-row">
@@ -408,14 +428,14 @@ function detailPanelHtml(store, emp){
               <input type="number" min="0" data-pid="${p.id}" class="order-qty-input" value="${d.qty[p.id]||''}" placeholder="0">
             </div>`).join('')}
         </div>
-        <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
-          <span class="field-label" style="margin:0;">Tổng đơn hàng</span>
+        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
+          <span class="field-label" style="margin:0;">Giá trị đơn hàng:</span>
           <span class="order-total" id="order-total-live">${fmtVND(total)}</span>
         </div>
       </div>
-      <div style="display:flex;gap:10px;margin-top:8px;">
-        <button class="btn-primary" data-action="save-detail" data-store="${store.id}" data-emp="${emp.id}">Lưu kết quả & Đơn hàng</button>
-        <button class="btn-text" data-action="toggle-detail" data-store="${store.id}">Huỷ</button>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button class="btn-primary" data-action="save-detail" data-store="${store.id}" data-emp="${emp.id}">Lưu báo cáo & Đơn hàng</button>
+        <button class="btn-text" data-action="toggle-detail" data-store="${store.id}">Đóng</button>
       </div>
     </div>
   `;
@@ -424,19 +444,18 @@ function detailPanelHtml(store, emp){
 function managerHtml(){
   const tabs = [
     {id:'dashboard', label:'Bảng điều khiển'},
-    {id:'employees', label:'Nhân viên'},
-    {id:'routes', label:'Chia tuyến'},
-    {id:'stores', label:'Danh sách quầy (Mã KH)'},
-    {id:'products', label:'Sản phẩm (Mã SP)'},
+    {id:'routes', label:'Chia tuyến Sales'},
+    {id:'stores', label:'Danh sách Quầy (Mã KH)'},
+    {id:'products', label:'Danh mục SP (Mã SP)'},
   ];
   return `
     <div class="tabs">
       ${tabs.map(t=>`<div class="tab ${STATE.managerTab===t.id?'active':''}" data-action="mtab" data-tab="${t.id}">${t.label}</div>`).join('')}
     </div>
     ${STATE.managerTab==='dashboard'? dashboardHtml() : ''}
+    ${STATE.managerTab==='routes'? managerRoutesHtml() : ''}
     ${STATE.managerTab==='stores'? managerStoresHtml() : ''}
     ${STATE.managerTab==='products'? managerProductsHtml() : ''}
-    ${STATE.managerTab==='employees'||STATE.managerTab==='routes'? `<div style="padding:20px;text-align:center;color:var(--muted);">Tính năng quản lý đang hoàn thiện thêm.</div>` : ''}
   `;
 }
 
@@ -449,42 +468,117 @@ function dashboardHtml(){
     const last = att[att.length-1];
     if(last && last.type==='in') onShift++;
   });
-  const totalRevenue = STATE.orders.filter(o=>o.time.slice(0,10)===todayKey()).reduce((s,o)=>s+o.total,0);
+  const todayOrders = STATE.orders.filter(o=>o.time.slice(0,10)===todayKey());
+  const totalRevenue = todayOrders.reduce((s,o)=>s+o.total,0);
 
   return `
     <div class="section-head">
-      <div><h2>Bảng điều khiển</h2><div class="sub">${fmtDate(Date.now())}</div></div>
+      <div><h2>Tổng quan hoạt động hôm nay</h2><div class="sub">${fmtDate(Date.now())}</div></div>
     </div>
     <div class="kpis">
       <div class="kpi"><div class="v">${totalEmp}</div><div class="l">Nhân viên</div></div>
-      <div class="kpi amber"><div class="v">${onShift}</div><div class="l">Đang làm</div></div>
-      <div class="kpi green"><div class="v">${totalVisited}</div><div class="l">Ghé quầy</div></div>
-      <div class="kpi green"><div class="v">${fmtVND(totalRevenue)}</div><div class="l">Doanh số</div></div>
+      <div class="kpi amber"><div class="v">${onShift}</div><div class="l">Đang làm việc</div></div>
+      <div class="kpi green"><div class="v">${totalVisited}</div><div class="l">Lượt ghé quầy</div></div>
+      <div class="kpi green"><div class="v">${fmtVND(totalRevenue)}</div><div class="l">Tổng doanh số</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Báo cáo tiến độ Nhân viên</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nhân viên</th>
+            <th>Trạng thái ca</th>
+            <th>Tiến độ tuyến</th>
+            <th>Đơn hàng</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${STATE.employees.map(e=>{
+            const route = empRouteStores(e.id);
+            const checkins = todaysCheckins(e.id);
+            const att = todaysAttendance(e.id);
+            const lastAtt = att[att.length-1];
+            const empOrders = todayOrders.filter(o=>o.empId===e.id);
+            const empTotal = empOrders.reduce((s,o)=>s+o.total,0);
+
+            return `
+              <tr>
+                <td><strong>${esc(e.name)}</strong><br><span style="font-size:11px;color:var(--muted);">${esc(e.phone)}</span></td>
+                <td>${lastAtt && lastAtt.type==='in' ? '<span style="color:var(--green);font-weight:700;">Đang làm</span>' : '<span style="color:var(--muted);">Nghỉ ca</span>'}</td>
+                <td>${checkins.length} / ${route.length} quầy</td>
+                <td><strong>${fmtVND(empTotal)}</strong> (${empOrders.length} đơn)</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function managerRoutesHtml(){
+  return `
+    <div class="section-head">
+      <div><h2>Phân tuyến cho Nhân viên</h2><div class="sub">Gán danh sách các quầy khách hàng cho từng Sales</div></div>
+    </div>
+    <div class="grid-2">
+      ${STATE.employees.map(emp=>{
+        const assignedIds = STATE.routes[emp.id] || [];
+        return `
+          <div class="card">
+            <h3>👤 ${esc(emp.name)}</h3>
+            <div class="field-label">Chọn quầy thuộc tuyến:</div>
+            <div style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;border:1px solid var(--line);padding:8px;border-radius:8px;background:#fff;">
+              ${STATE.stores.map(s=>`
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                  <input type="checkbox" data-action="route-toggle" data-emp="${emp.id}" data-store="${s.id}" ${assignedIds.includes(s.id)?'checked':''}>
+                  <span class="code-badge">${esc(s.code||'KH---')}</span>
+                  <span>${esc(s.name)}</span>
+                </label>
+              `).join('')}
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:8px;">Đã gán: <strong>${assignedIds.length}</strong> quầy</div>
+          </div>
+        `;
+      }).join('')}
     </div>
   `;
 }
 
 function managerStoresHtml(){
+  const filtered = STATE.stores.filter(s=> 
+    (s.name + s.code + s.address).toLowerCase().includes((STATE.storeFilter||'').toLowerCase())
+  );
+
   return `
     <div class="section-head">
-      <div><h2>Danh sách quầy / Khách hàng</h2><div class="sub">Quản lý mã khách hàng và tọa độ</div></div>
+      <div><h2>Danh sách Quầy / Mã Khách Hàng</h2><div class="sub">Quản lý toàn bộ danh sách điểm bán và tọa độ GPS</div></div>
     </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:14px;">
+      <input type="text" id="searchStore" placeholder="🔍 Tìm theo Mã KH, tên quầy, địa chỉ..." value="${esc(STATE.storeFilter)}">
+      <button class="btn-primary" data-action="add-store-prompt">+ Thêm Quầy</button>
+    </div>
+
     <table class="data-table">
       <thead>
         <tr>
           <th>Mã KH</th>
-          <th>Tên Quầy / Cửa hàng</th>
+          <th>Tên Quầy / Khách hàng</th>
           <th>Địa chỉ</th>
           <th>Phân loại</th>
+          <th>Tọa độ GPS</th>
         </tr>
       </thead>
       <tbody>
-        ${STATE.stores.map(s=>`
+        ${filtered.map(s=>`
           <tr>
             <td><span class="code-badge">${esc(s.code||'KH---')}</span></td>
             <td><strong>${esc(s.name)}</strong></td>
             <td>${esc(s.address)}</td>
-            <td><span class="cat-chip ${s.category}">${catLabel(s.category)}</span></td>
+            <td><span class="cat-chip ${s.category||'normal'}">${catLabel(s.category)}</span></td>
+            <td class="mono" style="font-size:11px;">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</td>
           </tr>
         `).join('')}
       </tbody>
@@ -495,14 +589,16 @@ function managerStoresHtml(){
 function managerProductsHtml(){
   return `
     <div class="section-head">
-      <div><h2>Danh mục Sản phẩm</h2><div class="sub">Quản lý mã sản phẩm và đơn giá</div></div>
+      <div><h2>Danh mục Sản phẩm / SKU</h2><div class="sub">Quản lý danh sách hàng hóa và đơn giá bán</div></div>
+      <button class="btn-primary" data-action="add-product-prompt">+ Thêm SP mới</button>
     </div>
+
     <table class="data-table">
       <thead>
         <tr>
           <th>Mã SP (SKU)</th>
-          <th>Tên Sản phẩm</th>
-          <th>Đơn giá</th>
+          <th>Tên Mặt Hàng / Sản phẩm</th>
+          <th>Đơn Giá Bán</th>
         </tr>
       </thead>
       <tbody>
@@ -510,7 +606,7 @@ function managerProductsHtml(){
           <tr>
             <td><span class="code-badge">${esc(p.sku||'SP---')}</span></td>
             <td><strong>${esc(p.name)}</strong></td>
-            <td class="mono">${fmtVND(p.price)}</td>
+            <td class="mono" style="font-weight:700;color:var(--navy);">${fmtVND(p.price)}</td>
           </tr>
         `).join('')}
       </tbody>
@@ -541,6 +637,7 @@ function bindEvents(){
     }
     if(action==='logout'){ STATE.screen='login'; STATE.currentEmployee=null; render(); }
     if(action==='mtab'){ STATE.managerTab = btn.dataset.tab; render(); }
+
     if(action==='toggle-shift'){
       const emp = STATE.currentEmployee;
       const att = todaysAttendance(emp.id);
@@ -551,10 +648,11 @@ function bindEvents(){
       showToast(nextType==='in' ? 'Vào ca thành công!' : 'Tan ca thành công!');
       render();
     }
+
     if(action==='checkin'){
       const storeId = btn.dataset.store;
       const store = STATE.stores.find(s=>s.id===storeId);
-      showToast('Đang lấy vị trí GPS...');
+      showToast('Đang quét tọa độ GPS...');
       try {
         const pos = await getPosition();
         const dist = haversine(pos.lat, pos.lng, store.lat, store.lng);
@@ -563,10 +661,10 @@ function bindEvents(){
           time:new Date().toISOString(), distance:dist, lat:pos.lat, lng:pos.lng
         });
         saveStored(KEYS.checkins, STATE.checkins);
-        showToast(`Đã ghé quầy (cách ${Math.round(dist)}m)`);
+        showToast(`Đã ghé quầy (khoảng cách ${Math.round(dist)}m)`);
         render();
       } catch(err){
-        showToast('Không lấy được GPS. Đã ghi nhận ghé quầy.');
+        showToast('Không thể lấy GPS. Hệ thống ghi nhận vị trí mặc định.');
         STATE.checkins.push({
           id:'ck_'+Date.now(), empId:STATE.currentEmployee.id, storeId,
           time:new Date().toISOString(), distance:0, lat:store.lat, lng:store.lng
@@ -575,6 +673,7 @@ function bindEvents(){
         render();
       }
     }
+
     if(action==='toggle-detail'){
       const sid = btn.dataset.store;
       if(STATE.detailStoreId===sid){ STATE.detailStoreId=null; }
@@ -585,6 +684,7 @@ function bindEvents(){
       }
       render();
     }
+
     if(action==='save-detail'){
       const sid = btn.dataset.store;
       const empId = btn.dataset.emp;
@@ -595,7 +695,6 @@ function bindEvents(){
         saveStored(KEYS.checkins, STATE.checkins);
       }
       
-      // Lưu đơn hàng nếu có nhập số lượng
       const total = STATE.products.reduce((sum,p)=> sum + (Number(STATE.detailDraft.qty[p.id])||0)*p.price, 0);
       if(total > 0){
         STATE.orders.push({
@@ -606,7 +705,48 @@ function bindEvents(){
       }
 
       STATE.detailStoreId = null;
-      showToast('Đã lưu thông tin ghé quầy & đơn hàng!');
+      showToast('Đã lưu dữ liệu báo cáo & đơn hàng!');
+      render();
+    }
+
+    if(action==='add-store-prompt'){
+      const code = prompt('Nhập Mã KH (VD: KH007):', 'KH00' + (STATE.stores.length + 1));
+      if(!code) return;
+      const name = prompt('Nhập Tên quầy/Cửa hàng:');
+      if(!name) return;
+      const address = prompt('Nhập Địa chỉ:');
+      
+      const newStore = {
+        id: 's_' + Date.now(),
+        code: code.trim(),
+        name: name.trim(),
+        address: address ? address.trim() : 'Chưa cập nhật',
+        lat: 11.5350,
+        lng: 106.8980,
+        category: 'normal'
+      };
+      STATE.stores.push(newStore);
+      saveStored(KEYS.stores, STATE.stores);
+      showToast('Đã thêm quầy mới thành công!');
+      render();
+    }
+
+    if(action==='add-product-prompt'){
+      const sku = prompt('Nhập Mã SP / SKU (VD: SP-NEW1):', 'SP-00' + (STATE.products.length + 1));
+      if(!sku) return;
+      const name = prompt('Nhập Tên sản phẩm:');
+      if(!name) return;
+      const price = prompt('Nhập Đơn giá (VNĐ):', '50000');
+      
+      const newProd = {
+        id: 'p_' + Date.now(),
+        sku: sku.trim(),
+        name: name.trim(),
+        price: Number(price) || 0
+      };
+      STATE.products.push(newProd);
+      saveStored(KEYS.products, STATE.products);
+      showToast('Đã thêm sản phẩm mới!');
       render();
     }
   };
@@ -614,6 +754,20 @@ function bindEvents(){
   document.onchange = (e)=>{
     if(e.target.dataset.action==='detail-outcome'){
       STATE.detailDraft.outcome = e.target.value;
+    }
+
+    if(e.target.dataset.action==='route-toggle'){
+      const empId = e.target.dataset.emp;
+      const storeId = e.target.dataset.store;
+      if(!STATE.routes[empId]) STATE.routes[empId] = [];
+      
+      if(e.target.checked){
+        if(!STATE.routes[empId].includes(storeId)) STATE.routes[empId].push(storeId);
+      } else {
+        STATE.routes[empId] = STATE.routes[empId].filter(id=>id!==storeId);
+      }
+      saveStored(KEYS.routes, STATE.routes);
+      showToast('Cập nhật tuyến thành công!');
     }
   };
 
@@ -624,6 +778,13 @@ function bindEvents(){
       const total = STATE.products.reduce((sum,p)=> sum + (Number(STATE.detailDraft.qty[p.id])||0)*p.price, 0);
       const el = document.getElementById('order-total-live');
       if(el) el.textContent = fmtVND(total);
+    }
+
+    if(e.target.id==='searchStore'){
+      STATE.storeFilter = e.target.value;
+      render();
+      const input = document.getElementById('searchStore');
+      if(input){ input.focus(); input.selectionStart = input.selectionEnd = input.value.length; }
     }
   };
 }
