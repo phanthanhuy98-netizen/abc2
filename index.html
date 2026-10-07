@@ -5245,14 +5245,33 @@ if ((currentTab === 'users' || currentTab === 'soGocBH') && users.length === 0 &
       window.location.reload(); 
   };
 
-   let tenantSwitcherHtml = '';
+  let tenantSwitcherHtml = '';
+    
+    // Lấy tên đơn vị hiện tại
+    let currentTenantObj = window.SYSTEM_TENANTS.find(t => t.id === window.currentWorkingTenant) || { name: window.currentWorkingTenant };
+    let userDisplayName = currentUser ? currentUser.name : 'Unknown';
+
     if (currentUser && currentUser.role === 'admin' && currentUser.maDonVi === 'ALL') {
+        // Giao diện cho Super Admin: Hiển thị Tên + Cho phép đổi chi nhánh
         tenantSwitcherHtml = `
-        <div style="display:inline-flex; align-items:center; background:rgba(37,99,235,0.1); border:1px solid var(--primary); padding: 6px 12px; border-radius: 10px; margin-right: 8px; flex-shrink: 0;">
-            <i class="fa-solid fa-building-flag" style="color:var(--primary); margin-right: 8px;"></i>
+        <div style="display:inline-flex; align-items:center; background:var(--card-bg); border:1px solid var(--primary); padding: 6px 12px; border-radius: 10px; margin-right: 8px; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <i class="fa-solid fa-user-shield" style="color:var(--rose); margin-right: 8px;"></i>
+            <span style="font-weight:800; font-size:13px; color:var(--text-main); margin-right: 8px;">${userDisplayName}</span>
+            <span style="color: var(--card-border); margin-right: 8px;">|</span>
+            <i class="fa-solid fa-building-flag" style="color:var(--primary); margin-right: 6px;"></i>
             <select onchange="switchEnterpriseTenant(this.value)" style="background:transparent; border:none; outline:none; font-weight:900; font-size:13px; color:var(--primary); cursor:pointer;">
                 ${window.SYSTEM_TENANTS.map(t => `<option value="${t.id}" ${window.currentWorkingTenant === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
             </select>
+        </div>`;
+    } else if (currentUser) {
+        // Giao diện cho Nhân viên thường: Hiển thị Tên + Chi nhánh cố định
+        tenantSwitcherHtml = `
+        <div style="display:inline-flex; align-items:center; background:var(--card-bg); border:1px solid var(--emerald); padding: 6px 12px; border-radius: 10px; margin-right: 8px; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <i class="fa-solid fa-user-tie" style="color:var(--amber); margin-right: 8px;"></i>
+            <span style="font-weight:800; font-size:13px; color:var(--text-main); margin-right: 8px;">${userDisplayName}</span>
+            <span style="color: var(--card-border); margin-right: 8px;">|</span>
+            <i class="fa-solid fa-location-dot" style="color:var(--emerald); margin-right: 6px;"></i>
+            <span style="font-weight:900; font-size:13px; color:var(--emerald);">${currentTenantObj.name}</span>
         </div>`;
     }
 
