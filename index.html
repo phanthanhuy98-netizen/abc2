@@ -423,18 +423,18 @@ import {
     initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, deleteDoc, doc, setDoc, updateDoc, getDoc, getDocs, getDocsFromCache,
     serverTimestamp, query, orderBy, limit, startAfter, writeBatch, where, runTransaction, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  const firebaseConfig = {
-    apiKey: "AIzaSyCGCHPxhUnZzwjXhfw3hcy-9VPi9RrZ6HY",
-    authDomain: "project-4126159910229398131.firebaseapp.com",
-    projectId: "project-4126159910229398131",
-    storageBucket: "project-4126159910229398131.firebasestorage.app",
-    messagingSenderId: "87655220343",
-    appId: "1:87655220343:web:15576d27653acbee16f272",
-    measurementId: "G-JK9WGF52FY"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const authSvc = getAuth(app);
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyC7JD5MhzMka84JPyVG_5LbZjPz8JOnbuc",
+  authDomain: "uy-phan.firebaseapp.com",
+  projectId: "uy-phan",
+  storageBucket: "uy-phan.firebasestorage.app",
+  messagingSenderId: "387969382999",
+  appId: "1:387969382999:web:772ccbb251eb4871b28112",
+  measurementId: "G-K6G6Z2XEXD"
+};
+const app = initializeApp(firebaseConfig);
+const authSvc = getAuth(app);
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
 });
