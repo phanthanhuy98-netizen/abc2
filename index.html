@@ -6136,19 +6136,24 @@ else if (tab === 'ctkm') {
 
             <div>
               <label style="font-size: 12px; font-weight: 900; color: var(--text-muted); margin-bottom: 6px; display: block; letter-spacing: 0.5px;">PHÂN QUYỀN HỆ THỐNG <span style="color:var(--rose);">*</span></label>
-              <select id="usRole" style="margin: 0; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--card-border); background: var(--bg-dark); font-weight: 800; color: var(--primary); cursor: pointer; outline: none;">
-                <div>
-              <label style="font-size: 12px; font-weight: 900; color: var(--text-muted); margin-bottom: 6px; display: block; letter-spacing: 0.5px;">ĐƠN VỊ TRỰC THUỘC <span style="color:var(--rose);">*</span></label>
-              <select id="usTenant" style="margin: 0; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--card-border); background: var(--bg-dark); font-weight: 800; color: var(--emerald); cursor: pointer; outline: none;">
-                ${window.SYSTEM_TENANTS.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
-                <option value="ALL">🌟 ALL - Super Admin (Điều hành toàn quốc)</option>
-              </select>
-            </div>
-                <option value="sales">Sales (Nhân viên đi thị trường)</option>
-                <option value="accountant">Accountant (Kế toán xử lý đơn)</option>
-                <option value="manager">Manager (Quản lý - Xem báo cáo)</option>
-                <option value="viewer">Viewer (Tài khoản chỉ xem)</option>
-              </select>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+              <div>
+                <label style="font-size: 12px; font-weight: 900; color: var(--text-muted); margin-bottom: 6px; display: block; letter-spacing: 0.5px;">ĐƠN VỊ TRỰC THUỘC <span style="color:var(--rose);">*</span></label>
+                <select id="usTenant" style="margin: 0; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--card-border); background: var(--bg-dark); font-weight: 800; color: var(--emerald); cursor: pointer; outline: none;">
+                  ${window.SYSTEM_TENANTS.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                  <option value="ALL">🌟 ALL - Super Admin (Điều hành toàn quốc)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 12px; font-weight: 900; color: var(--text-muted); margin-bottom: 6px; display: block; letter-spacing: 0.5px;">PHÂN QUYỀN HỆ THỐNG <span style="color:var(--rose);">*</span></label>
+                <select id="usRole" style="margin: 0; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--card-border); background: var(--bg-dark); font-weight: 800; color: var(--primary); cursor: pointer; outline: none;">
+                  <option value="sales">Sales (Nhân viên đi thị trường)</option>
+                  <option value="accountant">Accountant (Kế toán xử lý đơn)</option>
+                  <option value="manager">Manager (Quản lý - Xem báo cáo)</option>
+                  <option value="viewer">Viewer (Tài khoản chỉ xem)</option>
+                </select>
+              </div>
             </div>
 
             <button type="submit" class="btn btn-amber" style="width: 100%; justify-content: center; padding: 16px; font-weight: 900; font-size: 15px; border-radius: 12px; box-shadow: 0 6px 20px rgba(245, 158, 11, 0.25); margin-top: 8px;">
