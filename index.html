@@ -4441,9 +4441,9 @@ window.importProductsExcel = function(event) {
         await batch.commit();
         await new Promise(res => setTimeout(res, 50));
       }
-
-      const metaRef = doc(db, "systemCounters", "globalMetadata");
-      await setDoc(metaRef, { version: serverTimestamp() }, { merge: true });
+const newVersion = Date.now();
+      await setDoc(doc(db, "systemMeta", "version"), { productsVersion: newVersion }, { merge: true });
+      localStorage.setItem("productsVersion", newVersion);
 
       products = rawProducts;
       buildProductIndex();
@@ -4511,10 +4511,10 @@ window.importProductsExcel = function(event) {
           await batch.commit();
           await new Promise(resolve => setTimeout(resolve, 50));
         }
-
-        const metaRef = doc(db, "systemCounters", "globalMetadata");
-        await setDoc(metaRef, { version: serverTimestamp() }, { merge: true });
-
+const newVersion = Date.now();
+        await setDoc(doc(db, "systemMeta", "version"), { storesVersion: newVersion }, { merge: true });
+        localStorage.setItem("storesVersion", newVersion);
+        
         stores = rawCustomers;
         buildStoreIndex();
         await saveStoresToLocalCache(stores);
@@ -4556,9 +4556,10 @@ window.importProductsExcel = function(event) {
           });
           await batch.commit();
 
-          const metaRef = doc(db, "systemCounters", "globalMetadata");
-          await setDoc(metaRef, { version: serverTimestamp() }, { merge: true });
-
+          const newVersion = Date.now();
+          await setDoc(doc(db, "systemMeta", "version"), { companiesVersion: newVersion }, { merge: true });
+          localStorage.setItem("companiesVersion", newVersion);
+          
           companyList = newList;
           await saveCompaniesToLocalCache(companyList);
           renderUI();
@@ -4605,8 +4606,9 @@ window.importProductsExcel = function(event) {
           });
           await batch.commit();
 
-          const metaRef = doc(db, "systemCounters", "globalMetadata");
-          await setDoc(metaRef, { version: serverTimestamp() }, { merge: true });
+       const newVersion = Date.now();
+          await setDoc(doc(db, "systemMeta", "version"), { routesVersion: newVersion }, { merge: true });
+          localStorage.setItem("routesVersion", newVersion);
 
           routeGroupsList = newList;
           await saveRoutesToLocalCache(newList);
@@ -5227,23 +5229,29 @@ if ((currentTab === 'users' || currentTab === 'soGocBH') && users.length === 0 &
       kpi: { id: 'navKpi', label: 'Hiệu Suất', icon: 'fa-chart-pie', defaultColor: '#F43F5E', perm: currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') },
       users: { id: 'navusers', label: 'NV', icon: 'fa-users', defaultColor: '#D97706', perm: currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') }
     };
-    window.switchEnterpriseTenant = function(tenantId) {
-      window.currentWorkingTenant = tenantId;
-      localStorage.setItem('dms_admin_working_tenant', tenantId);
-      
-      // Xóa Cache để ép tải lại data của đơn vị mới
-      localStorage.removeItem("companiesVersion");
-      localStorage.removeItem("productsVersion");
-      localStorage.removeItem("routesVersion");
-      localStorage.removeItem("storesVersion");
-      localStorage.removeItem("dms_last_sync_comps");
-      localStorage.removeItem("dms_last_sync_products");
-      localStorage.removeItem("dms_last_sync_routes");
-      localStorage.removeItem("dms_last_sync_stores");
-      
-      alert(`🔄 Đang chuyển hệ thống sang: ${tenantId}`);
-      window.location.reload(); 
-  };
+  window.switchEnterpriseTenant = function(tenantId) {
+    window.currentWorkingTenant = tenantId;
+    localStorage.setItem('dms_admin_working_tenant', tenantId);
+    
+    // Xóa bộ nhớ cache trên RAM
+    localStorage.removeItem("companiesVersion");
+    localStorage.removeItem("productsVersion");
+    localStorage.removeItem("routesVersion");
+    localStorage.removeItem("storesVersion");
+    localStorage.removeItem("dms_last_sync_comps");
+    localStorage.removeItem("dms_last_sync_products");
+    localStorage.removeItem("dms_last_sync_routes");
+    localStorage.removeItem("dms_last_sync_stores");
+    localStorage.removeItem("localCtkmVersion"); 
+    
+    // ĐOẠN CODE ENTERPRISE: Phá hủy hoàn toàn IndexedDB cũ để làm sạch 100% data
+    if (window.indexedDB) {
+        window.indexedDB.deleteDatabase("DMS_OfflineDB");
+    }
+    
+    alert(`🔄 Đang chuyển hệ thống sang: ${tenantId}. Hệ thống sẽ dọn dẹp và tải lại dữ liệu vùng mới...`);
+    window.location.reload(); 
+};
 
   let tenantSwitcherHtml = '';
     
@@ -6241,7 +6249,8 @@ else if (tab === 'ctkm') {
                         <div style="flex: 1; min-width: 0;">
                             <div style="font-size: 18px; font-weight: 900; color: var(--text-main); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${u.name}">${u.name}</div>
                             <div style="font-size: 13px; font-weight: 800; color: var(--primary);">
-                                <span style="background: var(--prod-code-bg); color: var(--primary); padding: 2px 8px; border-radius: 6px;">Mã: ${u.code || '---'}</span>
+                                <span style="background: var(--prod-code-bg); color: var(--primary); padding: 2px 8px; border-radius: 6px; margin-right: 6px;">Mã: ${u.code || '---'}</span>
+                                <span style="background: rgba(16, 185, 129, 0.1); color: var(--emerald); padding: 2px 8px; border-radius: 6px;">ĐV: ${u.maDonVi || 'A1'}</span>
                             </div>
                         </div>
                     </div>
@@ -6257,6 +6266,11 @@ else if (tab === 'ctkm') {
                     <button class="btn btn-purple" style="font-weight: 900; padding: 10px 14px; font-size: 12.5px; border-radius: 10px; box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2);" onclick="openAdminChangePassModal('${u.uid}', '${u.email}', '${u.name}')">
                         <i class="fa-solid fa-key"></i> Đổi MK
                     </button>
+                    ${currentUser && currentUser.role === 'admin' ? `
+<button class="btn btn-blue" style="font-weight: 900; padding: 10px 14px; font-size: 12.5px; border-radius: 10px; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);" onclick="adminChangeUserTenant('${u.uid}', '${u.maDonVi || 'A1'}', '${u.name.replace(/'/g, "\\'")}')">
+    <i class="fa-solid fa-building-flag"></i> Đổi ĐV
+</button>
+` : ''}
                     
                     ${isActive ? `
                         <button class="btn btn-amber" style="font-weight: 900; padding: 10px 14px; font-size: 12.5px; border-radius: 10px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);" onclick="toggleUserActive('${u.uid}', false)">
@@ -7427,6 +7441,11 @@ window.deleteAllAndImportProductsExcel = async function(e) {
         await Promise.all(uploadBatches);
 
         // 3. CẬP NHẬT BIẾN LOCAL VÀ GIAO DIỆN
+       // 3. CẬP NHẬT BIẾN LOCAL VÀ PHÁT TÍN HIỆU ĐỒNG BỘ
+        const newVersion = Date.now();
+        await setDoc(doc(db, "systemMeta", "version"), { productsVersion: newVersion }, { merge: true });
+        localStorage.setItem("productsVersion", newVersion);
+        
         products = newProductsList;
         await saveProductsToLocalCache(products);
         buildProductIndex();
@@ -7568,6 +7587,10 @@ window.deleteAllAndImportCustomersExcel = async function(e) {
             await uploadBatch.commit();
         }
         // --- KẾT THÚC ĐOẠN CODE SỬA LẠI ---
+
+       const newVersion = Date.now();
+        await setDoc(doc(db, "systemMeta", "version"), { storesVersion: newVersion }, { merge: true });
+        localStorage.setItem("storesVersion", newVersion);
 
         stores = newStoresList;
         await saveStoresToLocalCache(stores);
@@ -12251,6 +12274,41 @@ window.toggleSalesPanel = function() {
         toggleBtn.style.background = 'var(--bg-dark)';
         toggleBtn.style.color = 'var(--text-muted)';
         toggleBtn.style.borderColor = 'var(--card-border)';
+    }
+};
+  window.adminChangeUserTenant = async function(uid, currentTenant, userName) {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    
+    // Tạo danh sách gợi ý cho Admin dễ nhập
+    const tenantOptions = window.SYSTEM_TENANTS.map(t => `${t.id}: ${t.name}`).join('\n');
+    
+    const newTenant = prompt(`ĐỔI ĐƠN VỊ CHO: [${userName}]\nĐơn vị hiện tại: ${currentTenant}\n\nNhập MÃ ĐƠN VỊ mới (A1, A2, A3 hoặc ALL):\n${tenantOptions}`, currentTenant);
+    
+    if (!newTenant) return; // Hủy bỏ nếu không nhập gì
+    
+    const validTenants = window.SYSTEM_TENANTS.map(t => t.id);
+    validTenants.push('ALL');
+    
+    const cleanTenant = newTenant.trim().toUpperCase();
+    if (!validTenants.includes(cleanTenant)) {
+        return alert("⛔ Mã đơn vị không hợp lệ! Vui lòng nhập đúng mã A1, A2, A3 hoặc ALL.");
+    }
+
+    try {
+        // Cập nhật lên Firebase
+        await updateDoc(doc(db, "users", uid), { maDonVi: cleanTenant });
+        
+        // Cập nhật lại giao diện ngay lập tức
+        const uIndex = users.findIndex(u => u.uid === uid);
+        if (uIndex > -1) users[uIndex].maDonVi = cleanTenant;
+        
+        alert(`✅ Đã chuyển [${userName}] sang đơn vị ${cleanTenant} thành công!`);
+        
+        // Vẽ lại tab Nhân sự
+        const activePane = document.getElementById('tabPane_users');
+        if (activePane) renderTabContent('users', activePane);
+    } catch(e) {
+        alert("Lỗi cập nhật đơn vị: " + e.message);
     }
 };
 </script>
