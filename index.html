@@ -4415,6 +4415,7 @@ window.importProductsExcel = function(event) {
         
         uniqueMap.set(code, {
           id: code,
+          maDonVi: window.currentWorkingTenant,
           code: code, 
           name: name, 
           dvt: dvt,
@@ -4482,6 +4483,7 @@ window.importProductsExcel = function(event) {
           if (tenDtpn && tenDtpn !== 'Ten DTPN') {
             const codeVal = maDtpn || `KH${i}`;
             uniqueCustomerMap.set(codeVal, {
+              maDonVi: window.currentWorkingTenant,
               id: codeVal,
               code: codeVal,
               name: tenDtpn,
@@ -4542,7 +4544,7 @@ window.importProductsExcel = function(event) {
           const maCtu = r[0] ? String(r[0]).trim() : '';
           const tenCtu = r[1] ? String(r[1]).trim() : '';
           if (maCtu && maCtu !== 'MaCTu') {
-            uniqueMap.set(maCtu, { maCtu, tenCtu, dvtDetails: [], status: "Mở", updatedAt: new Date().toISOString() });
+            uniqueMap.set(maCtu, {maDonVi: window.currentWorkingTenant, maCtu, tenCtu, dvtDetails: [], status: "Mở", updatedAt: new Date().toISOString() });
           }
         }
         let newList = Array.from(uniqueMap.values());
@@ -4589,7 +4591,7 @@ window.importProductsExcel = function(event) {
           if (nhomVal && nhomVal !== 'Nhóm đối tượng') {
             let intVal = parseInt(nhomVal, 10);
             if (!isNaN(intVal) && intVal >= 10) {
-              uniqueMap.set(String(intVal), { id: `route_${intVal}_${i}`, nhomDoiTuong: String(intVal), noiDung, ghiChu, updatedAt: new Date().toISOString() });
+              uniqueMap.set(String(intVal), { id: `route_${intVal}_${i}`, maDonVi: window.currentWorkingTenant, nhomDoiTuong: String(intVal), noiDung, ghiChu, updatedAt: new Date().toISOString() });
             }
           }
         }
@@ -7499,6 +7501,7 @@ window.deleteAllAndImportCustomersExcel = async function(e) {
 
           return {
             id: String(item.id || maKH || ('kh_' + Date.now() + '_' + idx)),
+            maDonVi: window.currentWorkingTenant,
             code: String(maKH).trim(),
             name: String(tenKH).trim(),
             address: String(diaChi).trim(),
@@ -10174,6 +10177,7 @@ window.handleImportCtkmExcel = function(event) {
 
             newPromos.push({
                id: 'km_' + Date.now() + '_' + i,
+               maDonVi: window.currentWorkingTenant,
                tuNgay: formatCleanDate(row[colMap['Tu Ngay']]),
                denNgay: formatCleanDate(row[colMap['Den Ngay']]),
                maKM: String(row[colMap['Ma CTKM']]).trim(),
