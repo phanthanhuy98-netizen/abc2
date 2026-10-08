@@ -1823,7 +1823,8 @@ try {
             const localCompsVersion = Number(localStorage.getItem("companiesVersion") || 0);
             
             if (serverCompsVersion > localCompsVersion) {
-                const cSnap = await getDocs(collection(db, "companies"));
+                const qCompRealtime = query(collection(db, "companies"), where("maDonVi", "==", window.currentWorkingTenant));
+                const cSnap = await getDocs(qCompRealtime);;
                 companyList = cSnap.docs.map(d => d.data());
                 window.allCompanies = companyList;
                 
@@ -1906,8 +1907,23 @@ window.handleLogout = async function() {
               console.log("Lỗi giải phóng Session ID:", err);
           }
       }
+     localStorage.removeItem("companiesVersion");
+        localStorage.removeItem("productsVersion");
+        localStorage.removeItem("routesVersion");
+        localStorage.removeItem("storesVersion");
+        localStorage.removeItem("dms_last_sync_comps");
+        localStorage.removeItem("dms_last_sync_products");
+        localStorage.removeItem("dms_last_sync_routes");
+        localStorage.removeItem("dms_last_sync_stores");
+        localStorage.removeItem("localCtkmVersion"); 
+        
+        // Đập bỏ toàn bộ Database Offline cũ (IndexedDB)
+        if (window.indexedDB) {
+            window.indexedDB.deleteDatabase("DMS_OfflineDB");
+        }
+        // ========================================================
 
-      // 3. Xử lý giao diện (ẩn App, hiện form Login)
+        // 3. Xử lý giao diện (ẩn App, hiện form Login)
       const loginView = document.getElementById('loginView');
       const appView = document.getElementById('appView');
       if (loginView) loginView.classList.remove('hidden');
@@ -7401,7 +7417,8 @@ window.deleteAllAndImportProductsExcel = async function(e) {
         alert(`Đang tiến hành xóa danh mục cũ và tải lên ${newProductsList.length} vật tư mới...`);
 
         // 1. XÓA TOÀN BỘ DATA CŨ
-        const prodSnap = await getDocs(collection(db, "products"));
+        const qDeleteProd = query(collection(db, "products"), where("maDonVi", "==", window.currentWorkingTenant));
+        const prodSnap = await getDocs(qDeleteProd);
         let batches = [];
         let currentBatch = writeBatch(db);
         let operationCount = 0;
@@ -7506,7 +7523,8 @@ window.deleteAllAndImportCustomersExcel = async function(e) {
         alert(`Đang tiến hành xóa dữ liệu cũ và tải lên ${jsonData.length} khách hàng mới...`);
 
         // Xóa toàn bộ dữ liệu cũ trên Firestore
-        const storeSnap = await getDocs(collection(db, "stores"));
+        const qDeleteStore = query(collection(db, "stores"), where("maDonVi", "==", window.currentWorkingTenant));
+        const storeSnap = await getDocs(qDeleteStore);
         const batches = [];
         let currentBatch = writeBatch(db);
         let operationCount = 0;
