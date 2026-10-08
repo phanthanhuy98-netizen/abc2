@@ -4566,14 +4566,14 @@ const newVersion = Date.now();
           const maCtu = r[0] ? String(r[0]).trim() : '';
           const tenCtu = r[1] ? String(r[1]).trim() : '';
           if (maCtu && maCtu !== 'MaCTu') {
-            uniqueMap.set(maCtu, {maDonVi: window.currentWorkingTenant, maCtu, tenCtu, dvtDetails: [], status: "Mở", updatedAt: new Date().toISOString() });
+            uniqueMap.set(maCtu, {id: `${window.currentWorkingTenant}_${maCtu}`, maDonVi: window.currentWorkingTenant, maCtu, tenCtu, dvtDetails: [], status: "Mở", updatedAt: new Date().toISOString() });
           }
         }
         let newList = Array.from(uniqueMap.values());
         if (newList.length > 0) {
           const batch = writeBatch(db);
           newList.forEach(c => {
-            const docRef = doc(db, "companies", String(c.maCtu));
+            const docRef = doc(db, "companies", String(c.id || c.maCtu));
             batch.set(docRef, c, { merge: true });
           });
           await batch.commit();
@@ -4650,10 +4650,12 @@ const newVersion = Date.now();
     if (!maCtu) return;
     const tenCtu = prompt("Nhập tên công ty (TenCTu):");
     if (!tenCtu) return;
+   
+    const newId = `${window.currentWorkingTenant}_${maCtu.trim()}`;
     
     const newC = { maDonVi: window.currentWorkingTenant, maCtu: maCtu.trim(), tenCtu: tenCtu.trim(), dvtDetails: [], status: "Mở", updatedAt: new Date().toISOString() };
     try {
-      await setDoc(doc(db, "companies", maCtu.trim()), newC);
+      await setDoc(doc(db, "companies", newId), newC);
       companyList.push(newC);
       await saveCompaniesToLocalCache(companyList);
       renderUI();
@@ -4752,7 +4754,7 @@ window.updateCompanyField = async function(index, field, val) {
   companyList[index][field] = val;
   const c = companyList[index];
   try {
-    await updateDoc(doc(db, "companies", String(c.maCtu)), { 
+    await updateDoc(doc(db, "companies", String(c.id || c.maCtu)), { 
   [field]: val, 
   updatedAt: new Date().toISOString() 
 });
@@ -4770,7 +4772,7 @@ window.toggleCompanyStatus = async function(index) {
   const newStatus = c.status === 'Đóng' ? 'Mở' : 'Đóng';
   c.status = newStatus;
   try {
-    await updateDoc(doc(db, "companies", String(c.maCtu)), { 
+    await updateDoc(doc(db, "companies", String(c.id || c.maCtu)), { 
   status: newStatus, 
   updatedAt: new Date().toISOString() 
 });
@@ -4792,7 +4794,7 @@ window.toggleCompanyDvtStatus = async function(companyIndex, dvtIndex) {
     let currentStatus = c.dvtDetails[dvtIndex].status || 'Mở';
     c.dvtDetails[dvtIndex].status = currentStatus === 'Đóng' ? 'Mở' : 'Đóng';
     try {
-      const docRef = doc(db, "companies", String(c.maCtu));
+      const docRef = doc(db, "companies", String(c.id || c.maCtu));
       await updateDoc(docRef, { 
   dvtDetails: c.dvtDetails, 
   updatedAt: new Date().toISOString() 
@@ -4816,7 +4818,7 @@ window.addCompanyDvtPrompt = async function(companyIndex) {
   if (!c.dvtDetails) c.dvtDetails = [];
   c.dvtDetails.push({ name: newName.trim(), status: 'Mở' });
   try {
-    await updateDoc(doc(db, "companies", String(c.maCtu)), { 
+    await updateDoc(doc(db, "companies", String(c.id || c.maCtu)), { 
   dvtDetails: c.dvtDetails, 
   updatedAt: new Date().toISOString() 
 });
@@ -4835,7 +4837,7 @@ window.removeCompanyDvt = async function(companyIndex, dvtIndex) {
   if (c.dvtDetails) {
     c.dvtDetails.splice(dvtIndex, 1);
     try {
-      await updateDoc(doc(db, "companies", String(c.maCtu)), { 
+      await updateDoc(doc(db, "companies", String(c.id || c.maCtu)), { 
   dvtDetails: c.dvtDetails, 
   updatedAt: new Date().toISOString() 
 });
@@ -4875,7 +4877,7 @@ window.deleteCompanyItem = async function(index) {
   const c = companyList[index];
   try {
     // THAY VÌ deleteDoc, TA DÙNG UPDATE ĐỂ BÁO HIỆU CHO MÁY SALES BIẾT ĐÃ XÓA
-    await updateDoc(doc(db, "companies", String(c.maCtu)), { 
+    await updateDoc(doc(db, "companies", String(c.id || c.maCtu)), { 
         isDeleted: true, 
         updatedAt: new Date().toISOString() 
     });
