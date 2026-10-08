@@ -1926,10 +1926,13 @@ window.handleLogout = async function() {
         localStorage.removeItem("dms_last_sync_stores");
         localStorage.removeItem("localCtkmVersion"); 
         
-        // Đập bỏ toàn bộ Database Offline cũ (IndexedDB)
-        if (window.indexedDB) {
-            window.indexedDB.deleteDatabase("DMS_OfflineDB");
-        }
+       const drafts = await getAllUnsubmittedDraftsAsync();
+if (drafts && drafts.length > 0) {
+    return alert("CẢNH BÁO: Bạn đang có đơn hàng chưa gửi hoặc nháp chưa đồng bộ. Vui lòng đồng bộ hết trước khi chuyển chi nhánh để tránh mất dữ liệu!");
+}
+if (window.indexedDB) {
+    window.indexedDB.deleteDatabase("DMS_OfflineDB");
+}
         // ========================================================
 
         // 3. Xử lý giao diện (ẩn App, hiện form Login)
@@ -4468,8 +4471,9 @@ window.importProductsExcel = function(event) {
         await batch.commit();
         await new Promise(res => setTimeout(res, 50));
       }
-const newVersion = Date.now();
-      await setDoc(doc(db, "systemMeta", "version"), { productsVersion: newVersion }, { merge: true });
+       const newVersion = Date.now();
+// Nối thêm mã đơn vị vào tên document
+       await setDoc(doc(db, "systemMeta", `version_${window.currentWorkingTenant}`), { productsVersion: newVersion }, { merge: true });
       localStorage.setItem("productsVersion", newVersion);
 
       products = rawProducts;
@@ -7539,10 +7543,10 @@ window.deleteAllAndImportProductsExcel = async function(e) {
         }
         await Promise.all(uploadBatches);
 
-        // 3. CẬP NHẬT BIẾN LOCAL VÀ GIAO DIỆN
        // 3. CẬP NHẬT BIẾN LOCAL VÀ PHÁT TÍN HIỆU ĐỒNG BỘ
         const newVersion = Date.now();
-        await setDoc(doc(db, "systemMeta", "version"), { productsVersion: newVersion }, { merge: true });
+// Nối thêm mã đơn vị vào tên document
+await setDoc(doc(db, "systemMeta", `version_${window.currentWorkingTenant}`), { productsVersion: newVersion }, { merge: true });
         localStorage.setItem("productsVersion", newVersion);
         
         products = newProductsList;
@@ -12216,8 +12220,23 @@ window.executeTransferKpi = async function(fromUid, fromSalesCode) {
             batch.set(toTargetRef, toData, { merge: true });
             // Cập nhật người cũ thành 0 để không bị ảo số tổng công ty
             batch.update(fromTargetRef, { items: [], companyRevenues: {} });
+          
         }
-
+// Viết thêm ngay trước lệnh batch.commit() trong hàm executeTransferKpi:
+const qOrders = query(
+    collection(db, "orders"), 
+    where("ngayCtu", ">=", targetMonth + "-01"),
+    where("ngayCtu", "<=", targetMonth + "-31"),
+    where("salesCode", "==", fromSalesCode)
+);
+const ordersSnap = await getDocs(qOrders);
+ordersSnap.forEach(oDoc => {
+    batch.update(oDoc.ref, {
+        salesCode: toSalesCode,
+        salesName: toUser.name,
+        salesUid: toUser.uid
+    });
+});
         await batch.commit();
 
         // 3. Ẩn Modal và Cập nhật giao diện
@@ -12400,11 +12419,15 @@ window.toggleSalesPanel = function() {
 
     try {
         // Cập nhật lên Firebase
-        await updateDoc(doc(db, "users", uid), { maDonVi: cleanTenant });
-        
-        // Cập nhật lại giao diện ngay lập tức
-        const uIndex = users.findIndex(u => u.uid === uid);
-        if (uIndex > -1) users[uIndex].maDonVi = cleanTenant;
+       // Đổi thành:
+await updateDoc(doc(db, "users", uid), { 
+    maDonVi: cleanTenant,
+    assignedRoutes: [] // <--- THÊM DÒNG NÀY
+});
+if (uIndex > -1) {
+    users[uIndex].maDonVi = cleanTenant;
+    users[uIndex].assignedRoutes = []; // <--- THÊM DÒNG NÀY
+}
         
         alert(`✅ Đã chuyển [${userName}] sang đơn vị ${cleanTenant} thành công!`);
         
