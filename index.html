@@ -3092,6 +3092,8 @@ window.filterSalesProducts = function(val) {
   container.innerHTML = htmlOutput;
 
   if (hintEl) hintEl.innerText = matched.length > 0 ? `Đang hiển thị ${visibleMatched.length}/${matched.length} khách hàng.` : "Không tìm thấy khách hàng phù hợp.";
+   const titleCountEl = document.getElementById('customerTabCountTitle');
+  if (titleCountEl) titleCountEl.innerText = storeIndexMap.size;
 };
 
 window.filterTabProducts = function(val) {
@@ -4015,7 +4017,7 @@ window.openCurrentCartModal = function() {
   }
 
 window.getNextSoCtuWithRetry = async function(retries = 3, delay = 100) {
-    const counterRef = doc(db, "systemCounters", "globalSoCtuMaster");
+    const counterRef = doc(db, "systemCounters", "counter_" + window.currentWorkingTenant);
     
     // Kiểm tra xem thiết bị có đang kết nối mạng không (navigator.onLine)
     const isOnline = navigator.onLine;
@@ -5610,7 +5612,7 @@ ${activeVisitedStore ? `
       const isViewer = currentUser.role === 'viewer';
       container.innerHTML = `
         <div class="tab-header-actions">
-  <h2 style="font-weight:800;"><i class="fa-solid fa-address-book" style="color:var(--amber);"></i> Khách Hàng (${stores.length})</h2>
+  <h2 style="font-weight:800;"><i class="fa-solid fa-address-book" style="color:var(--amber);"></i> Khách Hàng (<span id="customerTabCountTitle">${stores.length}</span>)</h2>
   <div class="excel-group-btns">
     <!-- Nút Làm Mới GPS Riêng Biệt -->
     <button class="btn btn-amber btn-sm" onclick="refreshStoresGPSData()" style="font-weight:700; font-size:12px;" title="Cập nhật vị trí ghim GPS mới nhất từ máy chủ">
