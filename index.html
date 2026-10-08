@@ -5345,6 +5345,9 @@ if ((currentTab === 'users' || currentTab === 'soGocBH') && users.length === 0 &
     localStorage.removeItem("localCtkmVersion"); 
     
     // ĐOẠN CODE ENTERPRISE: Phá hủy hoàn toàn IndexedDB cũ để làm sạch 100% data
+    if (!navigator.onLine) {
+    return alert("⛔ Bạn đang mất mạng. Vui lòng đợi có mạng để đồng bộ hết đơn hàng trước khi đổi chi nhánh!");
+}
     if (window.indexedDB) {
         window.indexedDB.deleteDatabase("DMS_OfflineDB");
     }
@@ -8859,30 +8862,26 @@ window.forceRefreshKpi = async function() {
             const lastSyncTime = localStorage.getItem(`dms_kpi_last_sync_${currentMonth}`) || "2000-01-01T00:00:00.000Z";
             
             // Lấy các đơn hàng MỚI ĐƯỢC TẠO SAU mốc lastSyncTime
-            const qNew = query(collection(db, "orders"), 
-                where("ngayCtu", ">=", currentMonth + "-01"),
-                where("ngayCtu", "<=", currentMonth + "-31"),
-                where("createdAt", ">", new Date(lastSyncTime))
-            );
-            const snapNew = await getDocs(qNew);
-            
-            // Lấy các đơn hàng CŨ BỊ SỬA LẠI SAU mốc lastSyncTime
-            const qEdited = query(collection(db, "orders"), 
-                where("ngayCtu", ">=", currentMonth + "-01"),
-                where("ngayCtu", "<=", currentMonth + "-31"),
-                where("updatedAt", ">", new Date(lastSyncTime))
-            );
-            const snapEdited = await getDocs(qEdited);
-            
-            // Gom chung đơn mới và đơn bị sửa lại
-            let changedOrders = [];
-            snapNew.forEach(d => changedOrders.push({ id: d.id, ...d.data() }));
-            snapEdited.forEach(d => {
-                // Kiểm tra trùng lặp giữa 2 truy vấn
-                if (!changedOrders.find(o => o.id === d.id)) {
-                    changedOrders.push({ id: d.id, ...d.data() });
-                }
-            });
+            // Thay vì lọc ngayCtu, ta lọc maDonVi và thời gian cập nhật
+const qNew = query(collection(db, "orders"), 
+    where("maDonVi", "==", window.currentWorkingTenant),
+    where("createdAt", ">", new Date(lastSyncTime))
+);
+const snapNew = await getDocs(qNew);
+
+const qEdited = query(collection(db, "orders"), 
+    where("maDonVi", "==", window.currentWorkingTenant),
+    where("updatedAt", ">", new Date(lastSyncTime))
+);
+const snapEdited = await getDocs(qEdited);
+
+// Sau đó ở vòng lặp bên dưới, anh thêm 1 bộ lọc bằng code JS:
+snapNew.forEach(d => {
+    const data = d.data();
+    if(data.ngayCtu && data.ngayCtu.startsWith(currentMonth)) {
+        changedOrders.push({ id: d.id, ...data });
+    }
+});
             
             // Gộp (Merge) vào cache hiện tại của tháng
             let cachedList = window._cachedKpiOrders[currentMonth];
@@ -10538,6 +10537,7 @@ const destDocId = `tgt_${safeCode}_${destMonth}`;
 
                 batch.set(destRef, {
                     salesCode: sCode,
+                    maDonVi: data.maDonVi || window.currentWorkingTenant,
                     month: destMonth,
                     items: scaledItems,
                     companyRevenues: scaledRevenues,
