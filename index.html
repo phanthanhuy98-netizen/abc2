@@ -1683,8 +1683,9 @@ window.allStores = (cachedStores || []).filter(s => !s.isDeleted);
         cachedPromos = typeof loadPromotionsFromLocalCache === 'function' ? await loadPromotionsFromLocalCache() : null;
       }
       if (!cachedPromos || cachedPromos.length === 0) {
-        const promoSnap = await getDocs(collection(db, "promotions"));
-        cachedPromos = promoSnap.docs.map(d => ({id: d.id, ...d.data()}));
+    const qPromoInit = query(collection(db, "promotions"), where("maDonVi", "==", window.currentWorkingTenant));
+    const promoSnap = await getDocs(qPromoInit);
+    cachedPromos = promoSnap.docs.map(d => ({id: d.id, ...d.data()}));
         if (typeof savePromotionsToLocalCache === 'function') await savePromotionsToLocalCache(cachedPromos);
         localStorage.setItem("localCtkmVersion", serverCtkmVersion);
       }
@@ -1813,9 +1814,10 @@ try {
             const serverVersion = docSnap.data().version;
             const localVersion = localStorage.getItem("localCtkmVersion") || 0;
             if (serverVersion > localVersion && currentUser && currentUser.role !== 'admin') {
-                localStorage.setItem("localCtkmVersion", serverVersion);
-                const snap = await getDocs(collection(db, "promotions"));
-                window.promotionsList = snap.docs.map(d => ({id: d.id, ...d.data()}));
+               localStorage.setItem("localCtkmVersion", serverVersion);
+            const qPromo = query(collection(db, "promotions"), where("maDonVi", "==", window.currentWorkingTenant));
+            const snap = await getDocs(qPromo);
+            window.promotionsList = snap.docs.map(d => ({id: d.id, ...d.data()}));
                 window.promotionsLoaded = true;
                 if (typeof drawCtkmUI === 'function' && currentTab === 'ctkm') drawCtkmUI();
             }
@@ -3276,7 +3278,7 @@ if (inputTo) inputTo.value = soGocFilterDateTo ? soGocFilterDateTo.split('-').re
       if (refreshBtn) refreshBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải...';
 
       // Tải dữ liệu mới từ Firebase
-     const snap = await getDocs(query(collection(db, "orders"), orderBy("soCtu", "desc"), limit(100)));
+    const snap = await getDocs(query(collection(db, "orders"), where("maDonVi", "==", window.currentWorkingTenant), orderBy("soCtu", "desc"), limit(100)));
       orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       
       if (!snap.empty) {
@@ -3315,7 +3317,7 @@ window.loadMoreSoGoc = async function() {
     }
 
     try {
-        let q = query(collection(db, "orders"), orderBy("soCtu", "desc"), startAfter(lastVisibleOrderDoc), limit(30));
+        let q = query(collection(db, "orders"), where("maDonVi", "==", window.currentWorkingTenant), orderBy("soCtu", "desc"), startAfter(lastVisibleOrderDoc), limit(30));
         const snap = await getDocs(q);
         
         if (snap.empty) {
@@ -4436,7 +4438,7 @@ window.importProductsExcel = function(event) {
         const tyLe = cRatio > -1 && r[cRatio] ? Number(r[cRatio]) : 50;
         
         uniqueMap.set(code, {
-          id: code,
+          id: `${window.currentWorkingTenant}_${code}`, // ✅ Đã sửa
           maDonVi: window.currentWorkingTenant,
           code: code, 
           name: name, 
@@ -4614,6 +4616,7 @@ const newVersion = Date.now();
           if (nhomVal && nhomVal !== 'Nhóm đối tượng') {
             let intVal = parseInt(nhomVal, 10);
             if (!isNaN(intVal) && intVal >= 10) {
+              const routeId = `${window.currentWorkingTenant}_route_${intVal}_${i}`; // ✅ Đã sửa
               uniqueMap.set(String(intVal), { id: `route_${intVal}_${i}`, maDonVi: window.currentWorkingTenant, nhomDoiTuong: String(intVal), noiDung, ghiChu, updatedAt: new Date().toISOString() });
             }
           }
@@ -5165,7 +5168,7 @@ window.filterUsersList = function(val) {
   };
 
 function attachListeners() {
-    getDocs(query(collection(db, "orders"), orderBy("soCtu", "desc"), limit(100))).then(snap => {
+    getDocs(query(collection(db, "orders"), where("maDonVi", "==", window.currentWorkingTenant), orderBy("soCtu", "desc"), limit(100))).then(snap => {
       orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       if (!snap.empty) {
         lastVisibleOrderDoc = snap.docs[snap.docs.length - 1];
@@ -6098,8 +6101,9 @@ else if (tab === 'ctkm') {
                 alert("⏳ Đang tải dữ liệu CTKM mới nhất về máy...");
             }
 
-            const snap = await getDocs(collection(db, "promotions"));
-            window.promotionsList = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            const qPromoReload = query(collection(db, "promotions"), where("maDonVi", "==", window.currentWorkingTenant));
+const snap = await getDocs(qPromoReload);
+window.promotionsList = snap.docs.map(d => ({id: d.id, ...d.data()}));
             window.promotionsLoaded = true;
             
             if (typeof drawCtkmUI === 'function') {
@@ -7569,7 +7573,7 @@ window.deleteAllAndImportCustomersExcel = async function(e) {
           const nvGhim = item['Nhân Viên Ghim'] || item.pinnedByName || '';
 
           return {
-            id: String(item.id || maKH || ('kh_' + Date.now() + '_' + idx)),
+            id: `${window.currentWorkingTenant}_${String(item.id || maKH || ('kh_' + Date.now() + '_' + idx))}`, // ✅ Đã sửa
             maDonVi: window.currentWorkingTenant,
             code: String(maKH).trim(),
             name: String(tenKH).trim(),
@@ -7726,8 +7730,9 @@ window.selectFbStore = function(id, code, name) {
 // 2. TẢI VÀ HIỂN THỊ LỊCH SỬ FEEDBACK TỪ FIREBASE
 window.loadFeedbacks = async function() {
   try {
-    const q = query(collection(db, "feedbacks"), limit(50));
-    const snap = await getDocs(q);
+    // Thêm where
+const q = query(collection(db, "feedbacks"), where("maDonVi", "==", window.currentWorkingTenant), limit(50));
+const snap = await getDocs(q);
     feedbacksList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     // Sắp xếp mới nhất lên đầu (xử lý offline để không bị lỗi Index Firebase)
     feedbacksList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -8863,13 +8868,14 @@ window.deleteAllKpiForCurrentMonth = async function() {
         const batch = writeBatch(db);
         let count = 0;
 
-        targetsSnap.forEach(docSnap => {
-            const data = docSnap.data();
-            if (data && data.month === currentMonth) {
-                batch.delete(docSnap.ref);
-                count++;
-            }
-        });
+        // Thêm điều kiện xóa để chỉ xóa của đơn vị mình
+targetsSnap.forEach(docSnap => {
+    const data = docSnap.data();
+    if (data && data.month === currentMonth && data.maDonVi === window.currentWorkingTenant) { // ✅ Đã sửa
+        batch.delete(docSnap.ref);
+        count++;
+    }
+});
 
         if (count === 0) {
             return alert(`Không tìm thấy dữ liệu KPI nào trong tháng ${currentMonth} để xóa.`);
@@ -9219,7 +9225,7 @@ window.calculateAndRenderTargets = async function() {
     let globalGroupedData = {};
     let assignedSalesCodes = new Set(); 
 
-    const qTargets = query(collection(db, "monthlyTargets"), where("month", "==", window._chiTieuTargetMonth));
+    const qTargets = query(collection(db, "monthlyTargets"), where("month", "==", window._chiTieuTargetMonth), where("maDonVi", "==", window.currentWorkingTenant));
     const targetsSnap = await getDocs(qTargets);
     let targetDocFound = false;
     
@@ -10308,7 +10314,8 @@ window.executeImportCtkm = async function(mode) {
   modalContainer.innerHTML = `<div class="modal" style="display:flex; z-index:999999;"><div style="color:#fff; font-size:18px; font-weight:bold;"><i class="fa-solid fa-spinner fa-spin"></i> Đang đồng bộ lên máy chủ...</div></div>`;
 
   try {
-    const promoSnap = await getDocs(collection(db, "promotions"));
+    const qPromoDelete = query(collection(db, "promotions"), where("maDonVi", "==", window.currentWorkingTenant));
+    const promoSnap = await getDocs(qPromoDelete);
     let batches = [];
     let currentBatch = writeBatch(db);
     let count = 0;
@@ -12000,6 +12007,7 @@ window.validateAndSaveMasterKpiToDatabase = async function() {
 
         batch.set(docRef, {
            salesCode: sCode,
+           maDonVi: window.currentWorkingTenant,
            month: window._chiTieuTargetMonth,
            items: items,
            companyRevenues: companyRevenues,
