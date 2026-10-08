@@ -1695,7 +1695,13 @@ window.allStores = (cachedStores || []).filter(s => !s.isDeleted);
       if (typeof buildStoreIndex === 'function') buildStoreIndex();
       if (typeof renderUI === 'function') renderUI();
 
-    } catch (error) {}
+    // ✅ THAY BẰNG ĐOẠN NÀY (Để bật cảnh báo báo lỗi Index):
+    } catch (error) {
+        console.error("Lỗi MasterData:", error);
+        if (error.message.includes("requires an index")) {
+            alert("⚠ HỆ THỐNG YÊU CẦU TẠO INDEX FIREBASE: Vui lòng mở F12 (Console) trên máy tính, copy đường link màu xanh dương dán vào trình duyệt để tạo Index cho các bảng Khách Hàng, Vật Tư, Tuyến. Sau khi tạo xong chờ 5 phút là app sẽ chạy bình thường!");
+        }
+    }
   }
 
   window.forceRefreshMasterDataFromCloud = async function() {
