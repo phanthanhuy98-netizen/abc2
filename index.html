@@ -1662,10 +1662,11 @@ if (!sSnap.empty) {
 // 5. Lưu lại mốc thời gian đồng bộ
 localStorage.setItem("dms_last_sync_stores", new Date().toISOString());
 
-    window.allCompanies = (cachedComps || []).filter(c => !c.isDeleted);
-window.allProducts = (cachedPrds || []).filter(p => !p.isDeleted);
-window.allRoutes = (cachedRoutes || []).filter(r => !r.isDeleted);
-window.allStores = (cachedStores || []).filter(s => !s.isDeleted);
+// GẮN CHẶT ĐIỀU KIỆN === window.currentWorkingTenant VÀO ĐUÔI MỖI MẢNG
+window.allCompanies = (cachedComps || []).filter(c => !c.isDeleted && c.maDonVi === window.currentWorkingTenant);
+window.allProducts = (cachedPrds || []).filter(p => !p.isDeleted && p.maDonVi === window.currentWorkingTenant);
+window.allRoutes = (cachedRoutes || []).filter(r => !r.isDeleted && r.maDonVi === window.currentWorkingTenant);
+window.allStores = (cachedStores || []).filter(s => !s.isDeleted && s.maDonVi === window.currentWorkingTenant);
 
       if (typeof companyList !== 'undefined') companyList = window.allCompanies;
       if (typeof products !== 'undefined') products = window.allProducts;
@@ -4596,56 +4597,122 @@ const newVersion = Date.now();
     reader.readAsArrayBuffer(file);
   };
 
-  window.importRoutesExcel = function(event) {
-    if (currentUser.role !== 'admin' && currentUser.role !== 'manager') return alert("⛔ Chỉ tài khoản Admin hoặc Manager mới có quyền tải file này!");
+window.deleteAllAndImportRoutesExcel = async function(e) {
+  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'manager')) {
+    return alert("Chỉ quản lý mới có quyền thực hiện tính năng này!");
+  }
+
+  const confirmed = await window.showCustomConfirm(
+    "XÁC NHẬN XÓA TOÀN BỘ TUYẾN", 
+    "Hành động này sẽ XÓA SẠCH toàn bộ danh mục tuyến cũ của đơn vị này và ghi đè bằng danh sách mới từ Excel. Bạn có chắc chắn muốn tiếp tục?", 
+    "fa-triangle-exclamation", 
+    "Đồng ý Xóa & Tải Mới", 
+    "Hủy"
+  );
+  if (!confirmed) return;
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.xlsx, .xls, .csv';
+  fileInput.onchange = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = async (e) => {
+    reader.onload = async function(e) {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const jsonRows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
         
         let uniqueMap = new Map();
-        for (let i = 0; i < jsonRows.length; i++) {
+        for (let i = 1; i < jsonRows.length; i++) { // Bỏ qua dòng tiêu đề
           const r = jsonRows[i];
+          if (!r || r.length === 0) continue;
+          
           let nhomVal = r[0] !== undefined && r[0] !== '' ? String(r[0]).trim() : '';
           const noiDung = r[1] ? String(r[1]).trim() : '';
           const ghiChu = r[2] ? String(r[2]).trim() : '';
+          
           if (nhomVal && nhomVal !== 'Nhóm đối tượng') {
             let intVal = parseInt(nhomVal, 10);
             if (!isNaN(intVal) && intVal >= 10) {
-              const routeId = `${window.currentWorkingTenant}_route_${intVal}_${i}`; // ✅ Đã sửa
-              uniqueMap.set(String(intVal), { id: `route_${intVal}_${i}`, maDonVi: window.currentWorkingTenant, nhomDoiTuong: String(intVal), noiDung, ghiChu, updatedAt: new Date().toISOString() });
+              // BỌC MÃ ĐƠN VỊ VÀO ID ĐỂ CHỐNG GHI ĐÈ GIỮA CÁC CHI NHÁNH
+              const routeId = `${window.currentWorkingTenant}_route_${intVal}`;
+              uniqueMap.set(String(intVal), { 
+                  id: routeId, 
+                  maDonVi: window.currentWorkingTenant, 
+                  nhomDoiTuong: String(intVal), 
+                  noiDung, 
+                  ghiChu, 
+                  updatedAt: new Date().toISOString() 
+              });
             }
           }
         }
 
-        let newList = Array.from(uniqueMap.values());
-        if (newList.length > 0) {
-          const batch = writeBatch(db);
-          newList.forEach(r => {
-            const docRef = doc(db, "routes", String(r.id));
-            batch.set(docRef, r);
-          });
-          await batch.commit();
+        const newRoutesList = Array.from(uniqueMap.values());
+        if (newRoutesList.length === 0) return alert("Lỗi: Không tìm thấy dữ liệu Tuyến hợp lệ trong file!");
 
-       const newVersion = Date.now();
-          await setDoc(doc(db, "systemMeta", "version"), { routesVersion: newVersion }, { merge: true });
-          localStorage.setItem("routesVersion", newVersion);
+        alert(`Đang tiến hành xóa danh mục tuyến cũ và tải lên ${newRoutesList.length} tuyến mới...`);
 
-          routeGroupsList = newList;
-          await saveRoutesToLocalCache(newList);
-          renderUI();
-          alert("✅ Đã đẩy danh sách tuyến lên Firebase Firestore thành công!");
-        } else {
-          alert("Không tìm thấy dữ liệu hợp lệ!");
-        }
-      } catch (err) {}
+        // 1. XÓA TOÀN BỘ TUYẾN CŨ CỦA CHI NHÁNH NÀY TRÊN SERVER
+        const qDeleteRoute = query(collection(db, "routes"), where("maDonVi", "==", window.currentWorkingTenant));
+        const routeSnap = await getDocs(qDeleteRoute);
+        let batches = [];
+        let currentBatch = writeBatch(db);
+        let operationCount = 0;
+
+        routeSnap.forEach((docSnap) => {
+          currentBatch.delete(docSnap.ref);
+          operationCount++;
+          if (operationCount >= 400) {
+            batches.push(currentBatch.commit());
+            currentBatch = writeBatch(db);
+            operationCount = 0;
+          }
+        });
+        if (operationCount > 0) batches.push(currentBatch.commit());
+        await Promise.all(batches);
+
+        // 2. TẢI TUYẾN MỚI LÊN
+        let uploadBatches = [];
+        let uploadBatch = writeBatch(db);
+        let upCount = 0;
+
+        newRoutesList.forEach(r => {
+          const docRef = doc(collection(db, "routes"), String(r.id));
+          uploadBatch.set(docRef, r);
+          upCount++;
+          if (upCount >= 400) {
+            uploadBatches.push(uploadBatch.commit());
+            uploadBatch = writeBatch(db);
+            upCount = 0;
+          }
+        });
+        if (upCount > 0) uploadBatches.push(uploadBatch.commit());
+        await Promise.all(uploadBatches);
+
+        // 3. CẬP NHẬT GIAO DIỆN
+        const newVersion = Date.now();
+        await setDoc(doc(db, "systemMeta", "version"), { routesVersion: newVersion }, { merge: true });
+        localStorage.setItem("routesVersion", newVersion);
+        
+        routeGroupsList = newRoutesList;
+        await saveRoutesToLocalCache(routeGroupsList);
+        
+        playSystemSound('success');
+        alert(`✅ Đã xóa cũ và tải mới thành công ${routeGroupsList.length} Tuyến bán hàng!`);
+        renderUI();
+
+      } catch (err) {
+        alert("Lỗi khi xử lý file Excel: " + err.message);
+      }
     };
     reader.readAsArrayBuffer(file);
   };
+  fileInput.click();
+};
 
   window.addNewCompany = async function() {
     if (currentUser.role !== 'admin' && currentUser.role !== 'manager') return alert("⛔ Chỉ Admin hoặc Manager mới có quyền thêm mới công ty!");
@@ -5894,13 +5961,14 @@ const viewedData = JSON.parse(localStorage.getItem('dms_accountant_viewed') || '
     else if (tab === 'routes') {
       const isAdminOrManager = currentUser.role === 'admin' || currentUser.role === 'manager';
       container.innerHTML = `
-        <div class="tab-header-actions">
+       <div class="tab-header-actions">
           <h2 style="font-weight:800;"><i class="fa-solid fa-route" style="color:var(--purple);"></i> Danh Mục Tuyến (${routeGroupsList.length})</h2>
           <div class="excel-group-btns">
             ${isAdminOrManager ? `
               <button class="btn btn-amber btn-sm" onclick="addNewRoute()"><i class="fa-solid fa-plus"></i> Thêm Tuyến</button>
               <button class="btn btn-green btn-sm" onclick="exportRoutesExcel()"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
-              <label class="btn btn-green btn-sm" style="cursor:pointer;margin:0;"><i class="fa-solid fa-file-arrow-up"></i> Tải Excel <input type="file" accept=".xlsx, .csv" onchange="importRoutesExcel(event)" style="display:none;"></label>
+              <!-- NÚT MỚI ĐÃ ĐƯỢC THAY THẾ -->
+              <button class="btn btn-red btn-sm" onclick="deleteAllAndImportRoutesExcel(event)"><i class="fa-solid fa-triangle-exclamation"></i> Xóa & Tải Mới Tuyến</button>
             ` : ''}
           </div>
         </div>
